@@ -30,10 +30,10 @@ class Home(Process):
 
 			if self.budget<0:
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
-				self.sendMessageQueue(-1)		#Send message queue to Market to let it know that a home has gone bankrupt.
+				self.sendMessageQueue('Broke')		#Send message queue to Market to let it know that a home has gone bankrupt.
 				break
 			else:
-				self.sendMessageQueue(1)
+				self.sendMessageQueue('Nothing')
 
 
 			sleep(5)
@@ -76,7 +76,7 @@ class Market(Process):
 			value=self.receiveMessageQueue()
 
 
-			if value==-1:
+			if value=='Broke':
 				print('Market: No more homes alive :(')
 				break
 
