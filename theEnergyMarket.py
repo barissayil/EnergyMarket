@@ -5,8 +5,6 @@ import time
 #test git
 class Home(Process):
 
-
-
 	def __init__(self,productionRate, consumptionRate):
 		super().__init__()
 		numberOfHomes.value+=1
@@ -17,8 +15,6 @@ class Home(Process):
 		self.homeNumber=numberOfHomes.value
 		self.mq = sysv_ipc.MessageQueue(self.homeNumber, sysv_ipc.IPC_CREAT)
 
-
-
 	def run(self):
 		while 1:
 			print("I'm home number {} and my budget is {} dollars.".format(self.homeNumber,self.budget))
@@ -26,6 +22,8 @@ class Home(Process):
 			self.energy=self.productionRate-self.consumptionRate
 			if self.energy<0:
 				self.buy()
+			#if self.energy>0:
+			#	self.sell()
 			if self.budget<0:
 				print("Shit I'm broke!")
 				self.mq.send(str(0).encode())
@@ -56,6 +54,8 @@ class Market(Process):
 			value = message.decode()
 			value = int(value)
 
+			print(value)
+			if value == 2:
 
 			if value==0:
 				print('No more homes alive :(')
