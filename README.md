@@ -1,13 +1,11 @@
 # EnergyMarket
 It simulates a simple energy market using concurrent execution features of Python.
 
-
+Now we have: Home --Message Queues-- Market --Shared Memory-- Weather
 
 
 Stuff to do:
 
-Add 2nd Home
+Add Home2 (IPC with Market) (Almost works... ValueError: invalid literal for int() with base 10: 'Nothing' )
 
-Add IPC for Home1 and Home2
-
-Add External
+Add IPC between Home1 and Home2
