@@ -167,19 +167,12 @@ class Weather(Process):
 															#but for now it's ok
 
 
-
-
+			if sunny.value:
+				print("Weather: The temperature is {}°C and it is sunny.".format(temperature.value))
+			else:
+				print("Weather: The temperature is {}°C and it is cloudy.".format(temperature.value))
 
 			sleep(10)
-
-
-
-
-
-
-	
-
-	
 
 	
 
