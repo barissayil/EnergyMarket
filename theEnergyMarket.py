@@ -49,17 +49,20 @@ class Home(Process):
 
 
 	def buy(self):
-		print("Home {}: What's the price?".format(self.homeNumber))
+		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
 		self.sendMessageQueue('Buy')					#Ask the price
 		price=self.receiveMessageQueue()
 		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
 		self.budget+=self.energy*price
-		# market.price+=.1							#The price goes up everytime someone buys energy.
 
+	def sell(self):
+		print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
+		self.sendMessageQueue('Sell')					#Ask the price
+		price=self.receiveMessageQueue()
+		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
+		self.budget+=self.energy*price
 
-	# def sell(self):
-	# 	self.budget+=self.energy*market.price
-	# 	market.price-=.1							#The price goes down everytime someone sells energy.
+	
 
 
 
@@ -80,12 +83,18 @@ class Market(Process):
 				print('Market: No more homes alive :(')
 				break
 
-			if value=='Buy':
+			elif value=='Buy':
 				print('Market: The price of energy is %s dollars.' %self.price)
 				self.sendMessageQueue(self.price,1)
 				print('Market: Energy is bought.')
 				print("Market: Increasing the price")
 				self.price+=5
+			elif value=='Sell':
+				print('Market: The price of energy is %s dollars.' %self.price)
+				self.sendMessageQueue(self.price,1)
+				print('Market: Energy is sold.')
+				print("Market: Decreasing the price")
+				self.price-=2
 
 
 			self.price-=1							#The price goes down over time if noone buys any energy.
@@ -110,7 +119,7 @@ def EnergyMarket():
 
 	sleep(1)
 
-	home1=Home(0,10)
+	home1=Home(15,10)
 	home1.start()
 
 
