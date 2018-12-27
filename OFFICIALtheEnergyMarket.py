@@ -88,7 +88,7 @@ class Market(Process):
 
 
 
-			
+
 			# self.price-=.2							#The price goes down over time if noone buys any energy.
 			print('The price of energy is %s dollars.' %self.price)
 
