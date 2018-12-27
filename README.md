@@ -4,6 +4,7 @@ It simulates a simple energy market using concurrent execution features of Pytho
 
 At the moment there's only one home and it buys some energy from the market until it goes bankrupt.
 
+
 Stuff to do:
 
 Add sell() function to Home class.
