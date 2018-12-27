@@ -10,7 +10,7 @@ class Home(Process):
 	def __init__(self,productionRate, consumptionRate):
 		super().__init__()
 		Home.numberOfHomes+=1
-		self.budget=100
+		self.budget=1000
 		self.productionRate=productionRate
 		self.consumptionRate=consumptionRate
 		self.energy=0
@@ -53,6 +53,7 @@ class Home(Process):
 	def buy(self):
 		self.sendMessageQueue(10)					#Ask the price
 		price=self.receiveMessageQueue()
+		print("|||||Price is {} dollars.".format(price))
 		self.budget+=self.energy*price
 		# market.price+=.1							#The price goes up everytime someone buys energy.
 
@@ -67,7 +68,7 @@ class Market(Process):
 
 	def __init__(self):
 		super().__init__()
-		self.price=2.0
+		self.price=20
 		self.mq = sysv_ipc.MessageQueue(1,sysv_ipc.IPC_CREAT)
 
 	def run(self):
@@ -82,13 +83,17 @@ class Market(Process):
 
 			if value==10:
 				self.sendMessageQueue(self.price,1)
-				self.price+=.1
+				print('Energy is bought.')
+				self.price+=1
 
+
+
+			
+			# self.price-=.2							#The price goes down over time if noone buys any energy.
+			print('The price of energy is %s dollars.' %self.price)
 
 
 			time.sleep(random.uniform(1,2))
-			self.price-=.2							#The price goes down over time if noone buys any energy.
-			print('The price of energy is %s dollars.' %self.price)
 
 	def sendMessageQueue(self, n, h):
 		self.mq.send(str(n).encode())
