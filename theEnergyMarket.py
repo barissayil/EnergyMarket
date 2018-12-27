@@ -30,7 +30,7 @@ class Home(Process):
 
 			if self.budget<0:
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
-				self.sendMessageQueue('Broke')		#Send message queue to Market to let it know that a home has gone bankrupt.
+				self.sendMessageQueue('Broke')
 				break
 			else:
 				self.sendMessageQueue('Nothing')
@@ -50,14 +50,14 @@ class Home(Process):
 
 	def buy(self):
 		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
-		self.sendMessageQueue('Buy')					#Ask the price
+		self.sendMessageQueue('Buy')
 		price=self.receiveMessageQueue()
 		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
 		self.budget+=self.energy*price
 
 	def sell(self):
 		print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
-		self.sendMessageQueue('Sell')					#Ask the price
+		self.sendMessageQueue('Sell')
 		price=self.receiveMessageQueue()
 		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
 		self.budget+=self.energy*price
