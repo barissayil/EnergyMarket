@@ -16,7 +16,7 @@ class Home(Process):
 		self.consumptionRate=consumptionRate
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
-		self.mq = sysv_ipc.MessageQueue(127)
+		self.mq = sysv_ipc.MessageQueue(126)
 
 	def run(self):
 		while 1:
@@ -34,7 +34,7 @@ class Home(Process):
 				self.sendMessageQueue('Broke')
 				break
 			else:
-				self.sendMessageQueue('Nothing')
+				self.sendMessageQueue('Nothing') #Je ne comprends pas pk on envoie ca
 
 
 			sleep(5)
@@ -63,16 +63,16 @@ class Home(Process):
 		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
 		self.budget+=self.energy*price
 
-	
 
 
 
+#TODO Protect price + create thread pool
 class Market(Process):
 
 	def __init__(self):
 		super().__init__()
 		self.price=20
-		self.mq = sysv_ipc.MessageQueue(127,sysv_ipc.IPC_CREAT)
+		self.mq = sysv_ipc.MessageQueue(126,sysv_ipc.IPC_CREAT)
 
 	def run(self):
 		while 1:
@@ -102,7 +102,7 @@ class Market(Process):
 			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
 			print('Market: The price of energy is now %s dollars.' %self.price)
 
-			sleep(random.uniform(1,2))
+			#Le market ne doit jamais sleep
 
 	def sendMessageQueue(self, n, h):
 		self.mq.send(str(n).encode())
@@ -117,7 +117,7 @@ class Market(Process):
 class Weather(Process):
 	def __init__(self):
 		super().__init__()
-		
+
 
 	def run(self):
 		while 1:
@@ -149,7 +149,7 @@ class Weather(Process):
 				temperature.value=4
 
 
-			
+
 			#...
 			#...
 			#Do something similar with hour.
@@ -174,7 +174,7 @@ class Weather(Process):
 
 			sleep(10)
 
-	
+
 
 
 if __name__=="__main__":
@@ -198,5 +198,5 @@ if __name__=="__main__":
 
 	# sleep(1)
 
-	# home2=Home(10,8)
-	# home2.start()
+	home2=Home(10,8)
+	home2.start()
