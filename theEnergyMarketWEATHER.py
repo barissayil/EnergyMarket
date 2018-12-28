@@ -3,6 +3,9 @@ import sysv_ipc
 import random
 from time import sleep
 import datetime
+import concurrent.futures
+import sys
+import threading
 
 class Home(Process):
 
@@ -74,28 +77,36 @@ class Market(Process):
 		self.price=20
 		self.mq = sysv_ipc.MessageQueue(126,sysv_ipc.IPC_CREAT)
 
+	def lookAtRequests(self):
+		while 1:
+			value=self.recieveMessageQueue()
+			if (value != ''):
+				with concurrent.futures.ThreadPoolExecutor(max_workers = 3) as executor :
+					handleRequest(self,value)
+					
+	def handleRequest(self,msg):
+		if value=='Broke':
+			print('Market: No more homes alive :(')
+			break
+		elif value=='Buy':
+			print('Market: The price of energy is %s dollars.' %self.price)
+			self.sendMessageQueue(self.price,1)
+			print('Market: Energy is bought.')
+			print("Market: Increasing the price")
+			self.price+=5
+		elif value=='Sell':
+			print('Market: The price of energy is %s dollars.' %self.price)
+			self.sendMessageQueue(self.price,1)
+			print('Market: Energy is sold.')
+			print("Market: Decreasing the price")
+			self.price-=2
+
+
 	def run(self):
 		while 1:
 
 			value=self.receiveMessageQueue()
 
-
-			if value=='Broke':
-				print('Market: No more homes alive :(')
-				break
-
-			elif value=='Buy':
-				print('Market: The price of energy is %s dollars.' %self.price)
-				self.sendMessageQueue(self.price,1)
-				print('Market: Energy is bought.')
-				print("Market: Increasing the price")
-				self.price+=5
-			elif value=='Sell':
-				print('Market: The price of energy is %s dollars.' %self.price)
-				self.sendMessageQueue(self.price,1)
-				print('Market: Energy is sold.')
-				print("Market: Decreasing the price")
-				self.price-=2
 
 
 			# self.price-=1							#The price goes down over time if noone buys any energy.
