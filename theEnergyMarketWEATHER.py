@@ -1,4 +1,4 @@
-from multiprocessing import Process, Value
+from multiprocessing import Process, Value, Lock
 import sysv_ipc
 import random
 from time import sleep
@@ -23,10 +23,9 @@ class Home(Process):
 		self.homeNumber=Home.numberOfHomes
 		#TODO ajouter code pour quand on CTRL+C ca ferme la mq
 		#On remove les messages que il y a
-		self.mq = sysv_ipc.MessageQueue(126)
-		with mutex:
-			self.mq.remove()
-		self.mq = sysv_ipc.MessageQueue(126)
+		self.mq = sysv_ipc.MessageQueue(128)
+		for i in range(100):
+			val = self.receiveMessageQueue()
 
 	def run(self):
 		while 1:
@@ -55,6 +54,8 @@ class Home(Process):
 	def receiveMessageQueue(self):
 		message, t = self.mq.receive()
 		value = message.decode()
+		print("Home recieved :")
+		print(value)
 		value = int(value)
 		return value
 
@@ -82,27 +83,29 @@ class Market(Process):
 	def __init__(self):
 		super().__init__()
 		self.price=20
-		self.mq = sysv_ipc.MessageQueue(126,sysv_ipc.IPC_CREAT)
+		self.mq = sysv_ipc.MessageQueue(128,sysv_ipc.IPC_CREAT)
 
 	def lookAtRequests(self):
 		while 1:
 			value=self.recieveMessageQueue()
 			if (value != ''):
 				with concurrent.futures.ThreadPoolExecutor(max_workers = 3) as executor :
-					handleRequest(self,value)
+					self.handleRequest(self,value)
 
 	def handleRequest(self,msg):
 		if value=='Broke':
 			print('Market: No more homes alive :(')
-			break #a quoi sert le break ???
 
 		elif value=='Buy':
 			#TODO protect price when reading and create a copy !!!
-			print('Market: The price of energy is %s dollars.' %self.price)
-			self.sendMessageQueue(self.price,1)
+			#PAS SUR DE MUTEX OU SEMAPHORE
+			with mutex :
+				print('Market: The price of energy is %s dollars.' %self.price)
+				self.sendMessageQueue(self.price,1)
 			print('Market: Energy is bought.')
 			print("Market: Increasing the price")
-			self.price+=5 #TODO Empecher le market de descendre en dessous de 0
+			with mutex :
+				self.price+=5 #TODO Empecher le market de descendre en dessous de 0
 
 		elif value=='Sell':
 			#TODO protect price when reading and create a copy !!!
@@ -114,17 +117,12 @@ class Market(Process):
 
 
 	def run(self):
-		while 1:
-
-			value=self.receiveMessageQueue()
-
-
-
-			# self.price-=1							#The price goes down over time if noone buys any energy.
-			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
-			print('Market: The price of energy is now %s dollars.' %self.price)
-
-			#Le market ne doit jamais sleep
+		requestLook = threading.Thread(target=self.lookAtRequests(), args= ())
+		requestLook.start()
+		# self.price-=1
+		#TODO bouger ligne 120						#The price goes down over time if noone buys any energy.			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
+		print('Market: The price of energy is now %s dollars.' %self.price)
+		#Le market ne doit jamais sleep
 
 	def sendMessageQueue(self, n, h):
 		self.mq.send(str(n).encode())
@@ -220,5 +218,5 @@ if __name__=="__main__":
 
 	# sleep(1)
 
-	home2=Home(10,8)
-	home2.start()
+	#home2=Home(10,8)
+	#home2.start()
