@@ -7,6 +7,8 @@ import concurrent.futures
 import sys
 import threading
 
+mutex = Lock()
+
 class Home(Process):
 
 	numberOfHomes=0
@@ -19,6 +21,11 @@ class Home(Process):
 		self.consumptionRate=consumptionRate
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
+		#TODO ajouter code pour quand on CTRL+C ca ferme la mq
+		#On remove les messages que il y a
+		self.mq = sysv_ipc.MessageQueue(126)
+		with mutex:
+			self.mq.remove()
 		self.mq = sysv_ipc.MessageQueue(126)
 
 	def run(self):
@@ -95,7 +102,7 @@ class Market(Process):
 			self.sendMessageQueue(self.price,1)
 			print('Market: Energy is bought.')
 			print("Market: Increasing the price")
-			self.price+=5
+			self.price+=5 #TODO Empecher le market de descendre en dessous de 0
 
 		elif value=='Sell':
 			#TODO protect price when reading and create a copy !!!
