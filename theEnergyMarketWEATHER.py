@@ -83,18 +83,22 @@ class Market(Process):
 			if (value != ''):
 				with concurrent.futures.ThreadPoolExecutor(max_workers = 3) as executor :
 					handleRequest(self,value)
-					
+
 	def handleRequest(self,msg):
 		if value=='Broke':
 			print('Market: No more homes alive :(')
-			break
+			break #a quoi sert le break ???
+
 		elif value=='Buy':
+			#TODO protect price when reading and create a copy !!!
 			print('Market: The price of energy is %s dollars.' %self.price)
 			self.sendMessageQueue(self.price,1)
 			print('Market: Energy is bought.')
 			print("Market: Increasing the price")
 			self.price+=5
+
 		elif value=='Sell':
+			#TODO protect price when reading and create a copy !!!
 			print('Market: The price of energy is %s dollars.' %self.price)
 			self.sendMessageQueue(self.price,1)
 			print('Market: Energy is sold.')
