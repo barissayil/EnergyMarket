@@ -119,8 +119,8 @@ class Market(Process):
 	def run(self):
 		requestLook = threading.Thread(target=self.lookAtRequests(), args= ())
 		requestLook.start()
-		# self.price-=1
-		#TODO bouger ligne 120						#The price goes down over time if noone buys any energy.			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
+
+		#TODO bouger ligne 120	#The price goes down over time if noone buys any energy.			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
 		print('Market: The price of energy is now %s dollars.' %self.price)
 		#Le market ne doit jamais sleep
 
