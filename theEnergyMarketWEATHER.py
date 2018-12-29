@@ -3,9 +3,9 @@ import sysv_ipc
 import random
 from time import sleep
 import datetime
-import concurrent.futures
+from concurrent.futures import ThreadPoolExecutor
 import sys
-import threading
+from threading import Thread
 #marche
 mutex = Lock()
 
@@ -90,7 +90,7 @@ class Market(Process):
 		while 1:
 			value=self.receiveMessageQueue()
 			if (value != ''):
-				with concurrent.futures.ThreadPoolExecutor(max_workers = 3) as executor :
+				with ThreadPoolExecutor(max_workers = 3) as executor :
 					self.handleRequest(value)
 
 	def handleRequest(self,msg):
@@ -100,12 +100,12 @@ class Market(Process):
 		elif msg=='Buy':
 			#TODO protect price when reading and create a copy !!!
 			#PAS SUR DE MUTEX OU SEMAPHORE
-			with mutex :
+			with mutex:
 				print('Market: The price of energy is %s dollars.' %self.price)
 				self.sendMessageQueue(self.price)
 			print('Market: Energy is bought.')
 			print("Market: Increasing the price")
-			with mutex :
+			with mutex:
 				self.price+=5 #TODO Empecher le market de descendre en dessous de 0
 
 		elif msg=='Sell':
@@ -118,7 +118,7 @@ class Market(Process):
 
 
 	def run(self):
-		requestLook = threading.Thread(target=self.lookAtRequests(), args= ())
+		requestLook = Thread(target=self.lookAtRequests(), args= ())
 		requestLook.start()
 
 		#TODO bouger ligne 120	#The price goes down over time if noone buys any energy.			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
