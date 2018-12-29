@@ -1,0 +1,94 @@
+Weather: The datetime is 2018-12-29 12:35:49.020378.
+Weather: The temperature is 4.0°C and it is sunny.
+Market recieved: New
+Home1 sent: New
+Market: New home. There are 1 homes in the market at the moment.
+Home 1: My budget is 1000 dollars.
+Home 1: What's the price? I wanna buy some energy.
+Home1 sent: Buy
+Market recieved: Buy
+Market: The price of energy is 20 dollars.
+Market sent: 20
+Home1 recieved: 20
+Market: Energy is bought.
+Market: Increasing the price
+Home 1: It seems the price is 20 dollars.
+Home1 sent: Nothing
+Market recieved: Nothing
+Market recieved: New
+Home2 sent: New
+Market: New home. There are 2 homes in the market at the moment.
+Home 2: My budget is 1000 dollars.
+Home 2: What's the price? I wanna sell some energy.
+Home2 sent: Sell
+Market recieved: Sell
+Market: The price of energy is 25 dollars.
+Market sent: 25
+Market: Energy is sold.
+Market: Decreasing the price
+Home2 recieved: 25
+Home 2: It seems the price is 25 dollars.
+Home2 sent: Nothing
+Market recieved: Nothing
+Home 1: My budget is 800 dollars.
+Home 1: What's the price? I wanna buy some energy.
+Home1 sent: Buy
+Market recieved: Buy
+Market: The price of energy is 23 dollars.
+Market sent: 23
+Market: Energy is bought.
+Home1 recieved: 23
+Market: Increasing the price
+Home 1: It seems the price is 23 dollars.
+Home1 sent: Nothing
+Market recieved: Nothing
+Home 2: My budget is 1050 dollars.
+Home 2: What's the price? I wanna sell some energy.
+Home2 sent: Sell
+Market recieved: Sell
+Market: The price of energy is 28 dollars.
+Market sent: 28
+Market: Energy is sold.
+Market: Decreasing the price
+Home2 recieved: 28
+Home 2: It seems the price is 28 dollars.
+Home2 sent: Nothing
+Market recieved: Nothing
+Weather: The datetime is 2018-12-29 12:35:59.031066.
+Weather: The temperature is 4.0°C and it is sunny.
+Home 1: My budget is 570 dollars.
+Home 1: What's the price? I wanna buy some energy.
+Market recieved: Buy
+Market: The price of energy is 26 dollars.
+Market sent: 26
+Market: Energy is bought.
+Market: Increasing the price
+Market recieved: 26
+Home1 sent: Buy
+Home 2: My budget is 1106 dollars.
+Home 2: What's the price? I wanna sell some energy.
+Market recieved: Sell
+Market: The price of energy is 31 dollars.
+Market sent: 31
+Market: Energy is sold.
+Market: Decreasing the price
+Home1 recieved: 31
+Home 1: It seems the price is 31 dollars.
+Home2 sent: Sell
+Home1 sent: Nothing
+Market recieved: Nothing
+Home 1: My budget is 260 dollars.
+Home 1: What's the price? I wanna buy some energy.
+Home1 sent: Buy
+Home2 recieved: Buy
+Process Home-4:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.8/multiprocessing/process.py", line 302, in _bootstrap
+    self.run()
+  File "theEnergyMarket.py", line 39, in run
+    self.sell()
+  File "theEnergyMarket.py", line 75, in sell
+    price=self.receiveMessageQueue()
+  File "theEnergyMarket.py", line 61, in receiveMessageQueue
+    value = int(value)
+ValueError: invalid literal for int() with base 10: 'Buy'
