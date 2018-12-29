@@ -43,19 +43,20 @@ class Home(Process):
 				self.sendMessageQueue('Broke')
 				break
 			else:
-				self.sendMessageQueue('Nothing') #Je ne comprends pas pk on envoie ca
+				self.sendMessageQueue('Nothing')
 
 
 			sleep(5)
 
 	def sendMessageQueue(self,n):
 		self.mq.send(str(n).encode())
+		print("Home{} sent: {}".format(self.homeNumber,n))
+
 
 	def receiveMessageQueue(self):
 		message, t = self.mq.receive()
 		value = message.decode()
-		print("Home recieved :")
-		print(value)
+		print("Home{} recieved: {}".format(self.homeNumber,value))
 		value = int(value)
 		return value
 
@@ -101,7 +102,7 @@ class Market(Process):
 			#PAS SUR DE MUTEX OU SEMAPHORE
 			with mutex :
 				print('Market: The price of energy is %s dollars.' %self.price)
-				self.sendMessageQueue(self.price,1)
+				self.sendMessageQueue(self.price)
 			print('Market: Energy is bought.')
 			print("Market: Increasing the price")
 			with mutex :
@@ -110,7 +111,7 @@ class Market(Process):
 		elif msg=='Sell':
 			#TODO protect price when reading and create a copy !!!
 			print('Market: The price of energy is %s dollars.' %self.price)
-			self.sendMessageQueue(self.price,1)
+			self.sendMessageQueue(self.price)
 			print('Market: Energy is sold.')
 			print("Market: Decreasing the price")
 			self.price-=2
@@ -122,15 +123,16 @@ class Market(Process):
 
 		#TODO bouger ligne 120	#The price goes down over time if noone buys any energy.			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
 		print('Market: The price of energy is now %s dollars.' %self.price)
-		#Le market ne doit jamais sleep
 
-	def sendMessageQueue(self, n, h):
+
+	def sendMessageQueue(self, n):
 		self.mq.send(str(n).encode())
+		print("Market sent: {}".format(n))
 
 	def receiveMessageQueue(self):
 		message, t = self.mq.receive()
 		value = message.decode()
-		print(value)
+		print("Market recieved: {}".format(value))
 		return value
 
 
