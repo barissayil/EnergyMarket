@@ -21,14 +21,12 @@ class Home(Process):
 		self.consumptionRate=consumptionRate
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
+		self.mq = sysv_ipc.MessageQueue(128)
 		#TODO ajouter code pour quand on CTRL+C ca ferme la mq
 
 
 	def run(self):
 		#TODO solve this lel
-		self.mq = sysv_ipc.MessageQueue(128)
-		for i in range(100):
-			val = self.receiveMessageQueue()
 
 		while 1:
 			print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
@@ -92,7 +90,7 @@ class Market(Process):
 			value=self.receiveMessageQueue()
 			if (value != ''):
 				with concurrent.futures.ThreadPoolExecutor(max_workers = 3) as executor :
-					self.handleRequest(self,value)
+					self.handleRequest(value)
 
 	def handleRequest(self,msg):
 		if msg=='Broke':
