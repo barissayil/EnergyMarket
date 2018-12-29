@@ -22,13 +22,14 @@ class Home(Process):
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
 		#TODO ajouter code pour quand on CTRL+C ca ferme la mq
-		#On remove les messages que il y a
 
 
 	def run(self):
+		#TODO solve this lel
 		self.mq = sysv_ipc.MessageQueue(128)
 		for i in range(100):
 			val = self.receiveMessageQueue()
+
 		while 1:
 			print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
 			self.energy=self.productionRate-self.consumptionRate
