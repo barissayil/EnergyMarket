@@ -23,11 +23,12 @@ class Home(Process):
 		self.homeNumber=Home.numberOfHomes
 		#TODO ajouter code pour quand on CTRL+C ca ferme la mq
 		#On remove les messages que il y a
+
+
+	def run(self):
 		self.mq = sysv_ipc.MessageQueue(128)
 		for i in range(100):
 			val = self.receiveMessageQueue()
-
-	def run(self):
 		while 1:
 			print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
 			self.energy=self.productionRate-self.consumptionRate
@@ -87,16 +88,16 @@ class Market(Process):
 
 	def lookAtRequests(self):
 		while 1:
-			value=self.recieveMessageQueue()
+			value=self.receiveMessageQueue()
 			if (value != ''):
 				with concurrent.futures.ThreadPoolExecutor(max_workers = 3) as executor :
 					self.handleRequest(self,value)
 
 	def handleRequest(self,msg):
-		if value=='Broke':
+		if msg=='Broke':
 			print('Market: No more homes alive :(')
 
-		elif value=='Buy':
+		elif msg=='Buy':
 			#TODO protect price when reading and create a copy !!!
 			#PAS SUR DE MUTEX OU SEMAPHORE
 			with mutex :
@@ -107,7 +108,7 @@ class Market(Process):
 			with mutex :
 				self.price+=5 #TODO Empecher le market de descendre en dessous de 0
 
-		elif value=='Sell':
+		elif msg=='Sell':
 			#TODO protect price when reading and create a copy !!!
 			print('Market: The price of energy is %s dollars.' %self.price)
 			self.sendMessageQueue(self.price,1)
