@@ -1,4 +1,4 @@
-from multiprocessing import Process, Value, Lock
+from multiprocessing import Process, Value, Lock, Array
 import sysv_ipc
 import random
 from time import sleep
@@ -6,27 +6,40 @@ import datetime
 from concurrent.futures import ThreadPoolExecutor
 import sys
 from threading import Thread
-#marche
+
+
 mutex = Lock()
 
 class Home(Process):
 
 	numberOfHomes=0
 
-	def __init__(self,productionRate, consumptionRate):
+	def __init__(self,productionRate, consumptionRate,shared_nb_homes,shared_homeKEYs):
 		super().__init__()
+		shared_nb_homes.value +=1
 		Home.numberOfHomes+=1
 		self.budget=1000
 		self.productionRate=productionRate
 		self.consumptionRate=consumptionRate
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
-		self.mq = sysv_ipc.MessageQueue(128)
+		shared_homeKEYs[self.homeNumber-1] = (130+self.homeNumber)
+		print(shared_nb_homes)
+		print(shared_homeKEYs)
 		#TODO ajouter code pour quand on CTRL+C ca ferme la mq
-
+	def init_Queue(self):
+		self.mq = sysv_ipc.MessageQueue(shared_homeKEYs[self.homeNumber-1])
 
 	def run(self):
-		#TODO solve this lel
+		go = 0
+		while (go == 0):
+			try:
+				self.mq
+			except:
+				print("Mq not exists yet")
+				sleep(2)
+			else:
+				go = 1
 
 		while 1:
 			print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
@@ -57,16 +70,21 @@ class Home(Process):
 		message, t = self.mq.receive()
 		value = message.decode()
 		print("Home{} recieved: {}".format(self.homeNumber,value))
-		value = int(value)
+		if((value != "Buy") or (value != "Nothing")):
+			value = int(value)
 		return value
 
 
 	def buy(self):
 		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
 		self.sendMessageQueue('Buy')
-		price=self.receiveMessageQueue()
-		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
-		self.budget+=self.energy*price
+		temporary=self.receiveMessageQueue()
+		if((temporary != "Buy") or (temporary != "Nothing")):
+			price=temporary
+			print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
+			self.budget+=self.energy*price
+		else :
+			print("There is an error, anyway...")
 
 	def sell(self):
 		print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
@@ -81,17 +99,25 @@ class Home(Process):
 #TODO Protect price + create thread pool
 class Market(Process):
 
-	def __init__(self):
+	def __init__(self,shared_temp,shared_sunny,shared_nb_Homes,shared_homeKEYs):
 		super().__init__()
 		self.price=20
-		self.mq = sysv_ipc.MessageQueue(128,sysv_ipc.IPC_CREAT)
+		print(shared_nb_Homes.value)
+		print(shared_homeKEYs)
+		for i in range(shared_nb_Homes.value):
+			if(shared_homeKEYs[i]!=0):
 
-	def lookAtRequests(self):
+				self.mq.append(sysv_ipc.MessageQueue(shared_homeKEYs[i],sysv_ipc.IPC_CREAT))
+				home1.init_Queue()
+
+	def lookAtRequests(self,shared_nb_Homes_cop):
+		print("Look at request launched")
 		while 1:
-			value=self.receiveMessageQueue()
-			if (value != ''):
-				with ThreadPoolExecutor(max_workers = 3) as executor :
-					self.handleRequest(value)
+			for x in range(0,shared_nb_Homes_cop.value):
+				value=self.receiveMessageQueue(x)
+				if (value != ''):
+					with ThreadPoolExecutor(max_workers = 3) as executor :
+						self.handleRequest(value)
 
 	def handleRequest(self,msg):
 		if msg=='Broke':
@@ -118,9 +144,17 @@ class Market(Process):
 
 
 	def run(self):
-		requestLook = Thread(target=self.lookAtRequests(), args= ())
+		requestLook = Thread(target=self.lookAtRequests(), args= (shared_nb_Homes))
 		requestLook.start()
-
+		while 1:
+			sleep(5)
+			print(shared_hhomeKEYs)
+			print(shared_hnb_Homes.value)
+			for z in range(shared_nb_Homes.value):
+				try:
+					self.mq[z]
+				except IndexError:
+					self.mq[-1]=sysv_ipc.MessageQueue(shared_homeKEYs[z],sysv_ipc.IPC_CREAT)
 		#TODO bouger ligne 120	#The price goes down over time if noone buys any energy.			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
 		print('Market: The price of energy is now %s dollars.' %self.price)
 
@@ -129,8 +163,8 @@ class Market(Process):
 		self.mq.send(str(n).encode())
 		print("Market sent: {}".format(n))
 
-	def receiveMessageQueue(self):
-		message, t = self.mq.receive()
+	def receiveMessageQueue(self,indice):
+		message, t = self.mq[indice].receive()
 		value = message.decode()
 		print("Market recieved: {}".format(value))
 		return value
@@ -204,19 +238,23 @@ if __name__=="__main__":
 	temperature=Value('d', 12.5)
 
 	sunny=Value('i', 1)  # 1: sunny, 0: cloudy
-
+	nb_Homes=Value("i",0)
+	homeKEYs=Array("i",[0]*10)
 	weather=Weather()
 	weather.start()
 
 	sleep(1)
-
-	market=Market()
+	market=Market(temperature,sunny,nb_Homes,homeKEYs)
 	market.start()
-
 	sleep(1)
 
-	home1=Home(0,10)
+	home1=Home(0,10,nb_Homes,homeKEYs)
 	home1.start()
+
+
+
+
+
 
 	# sleep(1)
 
