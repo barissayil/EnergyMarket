@@ -24,8 +24,11 @@ class Home(Process):
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
 		shared_homeKEYs[self.homeNumber-1] = (130+self.homeNumber)
-		print(shared_nb_homes)
-		print(shared_homeKEYs)
+		print("Nb of Homes has been added :")
+		print(shared_nb_homes.value)
+		print("Home KEYs has been updated :")
+		for w in range(len(shared_homeKEYs)):
+			print(shared_homeKEYs[w])
 		#TODO ajouter code pour quand on CTRL+C ca ferme la mq
 	def init_Queue(self):
 		self.mq = sysv_ipc.MessageQueue(shared_homeKEYs[self.homeNumber-1])
@@ -104,16 +107,22 @@ class Market(Process):
 		self.price=20
 		print(shared_nb_Homes.value)
 		print(shared_homeKEYs)
+		self.shared_nb_Homes = shared_nb_Homes
+		self.shared_homeKEYs = shared_homeKEYs
+		self.mqExists = False
 		for i in range(shared_nb_Homes.value):
 			if(shared_homeKEYs[i]!=0):
 
 				self.mq.append(sysv_ipc.MessageQueue(shared_homeKEYs[i],sysv_ipc.IPC_CREAT))
 				home1.init_Queue()
 
-	def lookAtRequests(self,shared_nb_Homes_cop):
+	def lookAtRequests(self):
 		print("Look at request launched")
+		while(self.mqExists == False):
+			sleep(1)
+
 		while 1:
-			for x in range(0,shared_nb_Homes_cop.value):
+			for x in range(0,self.shared_nb_Homes.value):
 				value=self.receiveMessageQueue(x)
 				if (value != ''):
 					with ThreadPoolExecutor(max_workers = 3) as executor :
@@ -144,17 +153,20 @@ class Market(Process):
 
 
 	def run(self):
-		requestLook = Thread(target=self.lookAtRequests(), args= (shared_nb_Homes))
+		print(self.shared_nb_Homes)
+		requestLook = Thread(target=self.lookAtRequests(), args= ())
 		requestLook.start()
+
 		while 1:
 			sleep(5)
-			print(shared_hhomeKEYs)
-			print(shared_hnb_Homes.value)
-			for z in range(shared_nb_Homes.value):
+			print(self.shared_homeKEYs)
+			print(self.shared_nb_Homes.value)
+			for z in range(self.shared_nb_Homes.value):
 				try:
 					self.mq[z]
 				except IndexError:
-					self.mq[-1]=sysv_ipc.MessageQueue(shared_homeKEYs[z],sysv_ipc.IPC_CREAT)
+					self.mq[-1]=sysv_ipc.MessageQueue(self.shared_homeKEYs[z],sysv_ipc.IPC_CREAT)
+					self.mqExists = True
 		#TODO bouger ligne 120	#The price goes down over time if noone buys any energy.			self.price=int(self.price-temperature.value/10-sunny.value)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
 		print('Market: The price of energy is now %s dollars.' %self.price)
 
@@ -221,8 +233,6 @@ class Weather(Process):
 			sunny.value=random.randint(0,2)					#50% sunny 50% cloudy
 															#or we could do something similar to temperature where we use the months and hours to determine the probability
 															#but for now it's ok
-
-
 			if sunny.value:
 				print("Weather: The temperature is {}°C and it is sunny.".format(temperature.value))
 			else:
