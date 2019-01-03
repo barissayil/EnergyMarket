@@ -105,21 +105,19 @@ class Market(Process):
 	def __init__(self,shared_temp,shared_sunny,shared_nb_Homes,shared_homeKEYs):
 		super().__init__()
 		self.price=20
+		print("Market :For the moment there is :")
 		print(shared_nb_Homes.value)
-		print(shared_homeKEYs)
+		print("Market updated list of KEYs")
+		for w in range(len(shared_homeKEYs)):
+			print(shared_homeKEYs[w])
 		self.shared_nb_Homes = shared_nb_Homes
 		self.shared_homeKEYs = shared_homeKEYs
 		self.mqExists = False
-		for i in range(shared_nb_Homes.value):
-			if(shared_homeKEYs[i]!=0):
-
-				self.mq.append(sysv_ipc.MessageQueue(shared_homeKEYs[i],sysv_ipc.IPC_CREAT))
-				home1.init_Queue()
 
 	def lookAtRequests(self):
 		print("Look at request launched")
 		while(self.mqExists == False):
-			sleep(1)
+			sleep(5)
 
 		while 1:
 			for x in range(0,self.shared_nb_Homes.value):
@@ -153,14 +151,13 @@ class Market(Process):
 
 
 	def run(self):
-		print(self.shared_nb_Homes)
+
 		requestLook = Thread(target=self.lookAtRequests(), args= ())
 		requestLook.start()
-
+		print("Before entering the loop")
 		while 1:
 			sleep(5)
-			print(self.shared_homeKEYs)
-			print(self.shared_nb_Homes.value)
+			print("Entering the loop...")
 			for z in range(self.shared_nb_Homes.value):
 				try:
 					self.mq[z]
