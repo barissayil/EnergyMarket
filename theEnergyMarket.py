@@ -151,7 +151,7 @@ class Market(Process):
 
 
 	def run(self):
-
+		print("This code is executing")
 		requestLook = Thread(target=self.lookAtRequests(), args= ())
 		requestLook.start()
 		print("Before entering the loop")
