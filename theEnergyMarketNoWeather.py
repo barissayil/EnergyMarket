@@ -115,7 +115,7 @@ class Market(Process):
                 value=self.receiveMessage(x)
                 if value != '':
                     with ThreadPoolExecutor(max_workers = 3) as executor:
-                        self.handleMessage(value)
+                        executor.submit(self.handleMessage,value)
 
     def handleMessage(self,m):
         if m=='Broke':
@@ -155,11 +155,15 @@ class Market(Process):
 
 
     def run(self):
+        print("Creation du thread createMQ")
         createMQ = Thread(target=self.newMQ() ,args= ())
-        createMQ.start()
-        requestLook = Thread(target=self.lookAtRequests(), args=())
+        print("Creation du thread requestLook")
+        requestLook = Thread(target=self.lookAtRequests(), args=()) #Does not launch
+        print("Lancement de requestLook")
         requestLook.start()
-
+        print("Lancement de createMQ")
+        createMQ.start()
+        print("Lancements termines ! ")
         print('Market: The price of energy is now %s dollars.' %self.price)
 
 
