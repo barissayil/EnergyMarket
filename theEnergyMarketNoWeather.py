@@ -28,15 +28,15 @@ class Home(Process):
         #TODO ajouter code pour quand on CTRL+C ca ferme la mq
 
     def run(self):
-        go = 0
-        while go == 0:
+        theMQhasBeenCreated = 0
+        while theMQhasBeenCreated == 0:
             try:
                 self.mq = sysv_ipc.MessageQueue(128+self.homeNumber)
             except:
                 print("Mq not exists yet")
                 sleep(2)
             else:
-                go = 1
+                theMQhasBeenCreated = 1
                 print("Home : MQ created !")
         print("Home : Starting to send requests to Market !")
         while 1:
