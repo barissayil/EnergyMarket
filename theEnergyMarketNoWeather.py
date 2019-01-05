@@ -15,7 +15,6 @@ class Home(Process):
     numberOfHomes=0
 
     def __init__(self,productionRate, consumptionRate):
-        sleep(1)
         super().__init__()
         Home.numberOfHomes+=1
         self.budget=1000
@@ -23,8 +22,9 @@ class Home(Process):
         self.consumptionRate=consumptionRate
         self.energy=0
         self.homeNumber=Home.numberOfHomes
-        self.mqInit=sysv_ipc.MessageQueue(0) #Default Queue
-        self.mqInit.send((str(self.homeNumber)).encode()) #Tells market Home x neeeds MQ
+        self.mqInit=sysv_ipc.MessageQueue(1) #Default Queue
+        self.mqInit.send((str(self.homeNumber)).encode())
+        #Tells market Home x neeeds MQ
         #TODO ajouter code pour quand on CTRL+C ca ferme la mq
 
     def run(self):
@@ -38,6 +38,7 @@ class Home(Process):
             else:
                 theMQhasBeenCreated = 1
                 print("Home : MQ created !")
+        sleep(5)
         print("Home : Starting to send requests to Market !")
         while 1:
             print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
@@ -53,8 +54,7 @@ class Home(Process):
                 print("Home {}: Shit I'm broke!".format(self.homeNumber))
                 self.sendMessage('Broke')
                 break
-            else:
-                self.sendMessage('Nothing')
+
             sleep(5)
 
     def sendMessage(self,n):
@@ -96,7 +96,7 @@ class Market(Process):
     def __init__(self):
         super().__init__()
         self.price=20
-        self.mqInit=sysv_ipc.MessageQueue(0,sysv_ipc.IPC_CREAT)
+        self.mqInit=sysv_ipc.MessageQueue(1,sysv_ipc.IPC_CREAT)
         self.mqList=[]
         self.mqList.append(self.mqInit)
         print("The market's mqList: {}".format(self.mqList))
@@ -115,9 +115,10 @@ class Market(Process):
                 value=self.receiveMessage(x)
                 if value != '':
                     with ThreadPoolExecutor(max_workers = 3) as executor:
-                        executor.submit(self.handleMessage,value)
+                        print("demand received")
+                        executor.submit(self.handleMessage,value,x)
 
-    def handleMessage(self,m):
+    def handleMessage(self,m,channel):
         if m=='Broke':
             print('Market: No more homes alive :(')
 
@@ -126,7 +127,7 @@ class Market(Process):
             #PAS SUR DE MUTEX OU SEMAPHORE
             with mutex:
                 print('Market: The price of energy is %s dollars.' %self.price)
-                self.sendMessage(self.price)
+                self.sendMessage(self.price,channel)
             print('Market: Energy is bought.')
             print("Market: Increasing the price")
             with mutex:
@@ -135,14 +136,15 @@ class Market(Process):
         elif m=='Sell':
             #TODO protect price when reading and create a copy !!!
             print('Market: The price of energy is %s dollars.' %self.price)
-            self.sendMessage(self.price)
+            self.sendMessage(self.price,channel)
             print('Market: Energy is sold.')
             print("Market: Decreasing the price")
             self.price-=2
 
     def newMQ(self):
-        x = ""
         while 1:
+            print("new MQ while loop")
+            x = self.receiveMessage(0)
             if x != "":
                 print("Market received demand of new MQ")
                 homeNb = int(x)
@@ -151,21 +153,19 @@ class Market(Process):
                 print("Modified the mqList")
                 print(self.mqList)
                 self.mqExists = True
-            x = self.receiveMessage(0)
-
+                print(self.mqExists)
+            sleep(1)
 
     def run(self):
         print("Creation du thread createMQ")
-        createMQ = Thread(target=self.newMQ() ,args= ())
-        print("Creation du thread requestLook")
-        requestLook = Thread(target=self.lookAtRequests(), args=()) #Does not launch
-        print("Lancement de requestLook")
-        requestLook.start()
-        print("Lancement de createMQ")
+        createMQ = Thread(target=self.newMQ ,args= ())
         createMQ.start()
+        print("Creation du thread requestLook")
+        requestLook = Thread(target=self.lookAtRequests , args=()) #Does not launch
+        requestLook.start()
         print("Lancements termines ! ")
         print('Market: The price of energy is now %s dollars.' %self.price)
-
+        sleep(100)
 
     def sendMessage(self, n, indice):
         self.mqList[indice].send(str(n).encode())
