@@ -94,10 +94,9 @@ class Market(Process):
     def __init__(self):
         super().__init__()
         self.price=20
-        self.mqInit=MessageQueue(1000,IPC_CREAT)
-        self.mqList=[]
-        self.mqList.append(self.mqInit)
-        print("The market's mqList: {}".format(self.mqList))
+        self.messageQueueList=[]
+        self.messageQueueList.append(MessageQueue(1000,IPC_CREAT))
+        print("The market's messageQueueList: {}".format(self.messageQueueList))
         self.mqExists=False
 
     def lookAtRequests(self):
@@ -107,9 +106,9 @@ class Market(Process):
             print("Market: No MQ yet")
         print("Market: Found MQ")
         while 1:
-            for x in range(1,len(self.mqList)):
+            for x in range(1,len(self.messageQueueList)):
                 print(x)
-                print(self.mqList[x])
+                print(self.messageQueueList[x])
                 value=self.receiveMessage(x)
                 if value != '':
                     with ThreadPoolExecutor(max_workers = 3) as executor:
@@ -146,9 +145,9 @@ class Market(Process):
                 print("Market received demand of new MQ")
                 homeNb = int(x)
                 print("Home",homeNb,"demands a MQ")
-                self.mqList.append(MessageQueue(128+homeNb,IPC_CREAT))
-                print("Modified the mqList")
-                print(self.mqList)
+                self.messageQueueList.append(MessageQueue(128+homeNb,IPC_CREAT))
+                print("Modified the messageQueueList")
+                print(self.messageQueueList)
                 self.mqExists = True
                 print(self.mqExists)
             sleep(1)
@@ -162,14 +161,14 @@ class Market(Process):
         requestLook.start()
         print("Lancements termines ! ")
         print('Market: The price of energy is now %s dollars.' %self.price)
-        sleep(100)
+        sleep(10)
 
     def sendMessage(self, n, index):
-        self.mqList[index].send(str(n).encode())
+        self.messageQueueList[index].send(str(n).encode())
         print("Market sent: {}".format(n))
 
     def receiveMessage(self,index):
-        message, t = self.mqList[index].receive()
+        message, t = self.messageQueueList[index].receive()
         value = message.decode()
         print("Market recieved: {}".format(value))
         return value
@@ -184,4 +183,3 @@ if __name__=="__main__":
 
     home1=Home(0,10)
     home1.start()
-
