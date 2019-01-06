@@ -1,5 +1,5 @@
 from multiprocessing import Process, Value, Lock, Array
-import sysv_ipc
+from sysv_ipc import MessageQueue, IPC_CREAT
 import random
 from time import sleep
 import datetime
@@ -22,7 +22,7 @@ class Home(Process):
         self.consumptionRate=consumptionRate
         self.energy=0
         self.homeNumber=Home.numberOfHomes
-        self.mqInit=sysv_ipc.MessageQueue(1000) #Default Queue
+        self.mqInit=MessageQueue(1000) #Default Queue
         self.mqInit.send((str(self.homeNumber)).encode()) #Tells market Home x neeeds MQ
         
 
@@ -30,7 +30,7 @@ class Home(Process):
         theMQhasBeenCreated = 0
         while theMQhasBeenCreated == 0:
             try:
-                self.mq = sysv_ipc.MessageQueue(128+self.homeNumber)
+                self.mq = MessageQueue(128+self.homeNumber)
             except:
                 print("Mq not exists yet")
                 sleep(2)
@@ -94,7 +94,7 @@ class Market(Process):
     def __init__(self):
         super().__init__()
         self.price=20
-        self.mqInit=sysv_ipc.MessageQueue(1000,sysv_ipc.IPC_CREAT)
+        self.mqInit=MessageQueue(1000,IPC_CREAT)
         self.mqList=[]
         self.mqList.append(self.mqInit)
         print("The market's mqList: {}".format(self.mqList))
@@ -146,7 +146,7 @@ class Market(Process):
                 print("Market received demand of new MQ")
                 homeNb = int(x)
                 print("Home",homeNb,"demands a MQ")
-                self.mqList.append(sysv_ipc.MessageQueue(128+homeNb,sysv_ipc.IPC_CREAT))
+                self.mqList.append(MessageQueue(128+homeNb,IPC_CREAT))
                 print("Modified the mqList")
                 print(self.mqList)
                 self.mqExists = True
