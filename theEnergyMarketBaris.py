@@ -15,6 +15,7 @@ class Home(Process):
 	numberOfHomes=0
 
 	def __init__(self,productionRate, consumptionRate):
+		sleep(1)
 		super().__init__()
 		Home.numberOfHomes+=1
 		self.budget=1000
@@ -22,39 +23,28 @@ class Home(Process):
 		self.consumptionRate=consumptionRate
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
-
-
 		self.messageQueueList=[]
 		self.messageQueueList.append(MessageQueue(1000))
 		print("Home {}'s messageQueueList: {}".format(self.homeNumber, self.messageQueueList))
-		self.messageQueueList[0].send((str(self.homeNumber)).encode()) #Tells market Home x neeeds MQ
+		self.sendMessage(0, self.homeNumber)
 		
 
 	def run(self):
-		# self.connectedToMarket=False
+		sleep(1)
+		self.connectedToMarket=False
+		while not self.connectedToMarket:
+			message=self.receiveMessage(0)
+			if message==self.homeNumber:
+				self.messageQueueList.append(MessageQueue(self.homeNumber))
+				self.connectedToMarket=True
 
 
-
-
-
-		theMQhasBeenCreated = 0
-		while theMQhasBeenCreated == 0:
-			try:
-				self.mq = MessageQueue(128+self.homeNumber)
-			except:
-				print("Mq not exists yet")
-				sleep(2)
-			else:
-				theMQhasBeenCreated = 1
-				print("Home: MQ created !")
-		sleep(5)
-		print("Home {}: Starting to send requests to Market !".format(self.homeNumber))
-		while 1:
+		while self.connectedToMarket:
 			self.buyOrSell()
-			
+
 			if self.budget<0:
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
-				self.sendMessage('Broke')
+				self.sendMessage(1, 'Broke')
 				break
 
 			sleep(5)
@@ -67,37 +57,38 @@ class Home(Process):
 		elif self.energy>0:
 			self.sell()
 
-	def sendMessage(self,n):
-		self.mq.send(str(n).encode())
-		print("Home{} sent: {}".format(self.homeNumber,n))
+	def sendMessage(self, index, message):
+		self.messageQueueList[index].send(str(message).encode())
+		print("Home{} sent: {}".format(self.homeNumber,message))
+		sleep(5)
 
 
-	def receiveMessage(self):
-		message, t = self.mq.receive()
+	def receiveMessage(self, index):
+		message, t = self.messageQueueList[index].receive()
 		value = message.decode()
 		print("Home{} recieved: {}".format(self.homeNumber,value))
-		if value != "Buy" or value != "Nothing":
-			value = int(value)
+		value = int(value)
 		return value
 
 
 	def buy(self):
 		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
-		self.sendMessage('Buy')
-		temporary=self.receiveMessage()
-		if temporary != "Buy" or temporary != "Nothing":
-			price=temporary
-			print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
-			self.budget+=self.energy*price
-		else :
-			print("There is an error, anyway...")
+		self.sendMessage(1, 'Buy')
+		price=self.receiveMessage(1)
+		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
+		self.budget+=self.energy*price
+
 
 	def sell(self):
 		print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
-		self.sendMessage('Sell')
-		price=self.receiveMessage()
+		self.sendMessage(1, 'Sell')
+		price=self.receiveMessage(1)
 		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
 		self.budget+=self.energy*price
+
+
+	# def handleMessage(self):
+
 
 
 class Market(Process):
@@ -107,76 +98,60 @@ class Market(Process):
 		self.price=20
 		self.messageQueueList=[]
 		self.messageQueueList.append(MessageQueue(1000,IPC_CREAT))
-		print("The market's messageQueueList: {}".format(self.messageQueueList))
-		self.mqExists=False
+		print("Market: My messageQueueList is {}",format(self.messageQueueList))
 
 	def lookAtRequests(self):
-		print("Look at request launched")
-		while self.mqExists == False:
-			sleep(1)
-			print("Market: No MQ yet")
-		print("Market: Found MQ")
+		print("Market: Look at requests launched")
 		while 1:
-			for x in range(1,len(self.messageQueueList)):
-				print(x)
-				print(self.messageQueueList[x])
-				value=self.receiveMessage(x)
-				if value != '':
+			for index in range(len(self.messageQueueList)):
+				print("Market: Currently dealing with this: {}".format(self.messageQueueList[index]))
+				message=self.receiveMessage(index)
+				if message != '':
 					with ThreadPoolExecutor(max_workers = 3) as executor:
-						print("demand received")
-						executor.submit(self.handleMessage,value,x)
+						print("Market: ThreadPoolExecutor: demand received")
+						executor.submit(self.handleMessage,message,index)
+			sleep(1)
 
-	def handleMessage(self,m,channel):
-		if m=='Broke':
+	def handleMessage(self,message,index):
+		if message=='Broke':
 			print('Market: No more homes alive :(')
 
-		elif m=='Buy':
+		elif message=='Buy':
 			with mutex:
 				print('Market: The price of energy is %s dollars.' %self.price)
-				self.sendMessage(self.price,channel)
-			print('Market: Energy is bought.')
-			print("Market: Increasing the price")
+				self.sendMessage(self.price,index)
+			print('Market: Energy is bought, increasing the price.')
 			with mutex:
 				self.price+=5
 
-		elif m=='Sell':
+		elif message=='Sell':
 			print('Market: The price of energy is %s dollars.' %self.price)
 			with mutex:
-				self.sendMessage(self.price,channel)
-			print('Market: Energy is sold.')
-			print("Market: Decreasing the price")
+				self.sendMessage(self.price,index)
+			print('Market: Energy is sold, decreasing the price.')
 			with mutex:
 				self.price-=2
 
-	def newMQ(self):
-		while 1:
-			print("new MQ while loop")
-			x = self.receiveMessage(0)
-			if x != "":
-				print("Market received demand of new MQ")
-				homeNb = int(x)
-				print("Home",homeNb,"demands a MQ")
-				self.messageQueueList.append(MessageQueue(128+homeNb,IPC_CREAT))
-				print("Modified the messageQueueList")
-				print(self.messageQueueList)
-				self.mqExists = True
-				print(self.mqExists)
-			sleep(1)
+		else:
+			self.dealWithNewHome(message)
+
+	def dealWithNewHome(self, message):
+			print("Market: New home!")
+			self.sendMessage(message, 0)
+			self.messageQueueList.append(MessageQueue(message,IPC_CREAT))
+			print("Market: My messageQueueList is {}",format(self.messageQueueList))
 
 	def run(self):
-		print("Creation du thread newMQ")
-		createMQ = Thread(target=self.newMQ ,args= ())
-		createMQ.start()
-		print("Creation du thread requestLook")
-		requestLook = Thread(target=self.lookAtRequests , args=())
-		requestLook.start()
-		print("Lancements termines ! ")
+		print("Market: Creating requestsThread")
+		requestsThread = Thread(target=self.lookAtRequests, args=())
+		requestsThread.start()
 		print('Market: The price of energy is now %s dollars.' %self.price)
-		sleep(10)
+		sleep(100)
 
-	def sendMessage(self, n, index):
-		self.messageQueueList[index].send(str(n).encode())
-		print("Market sent: {}".format(n))
+	def sendMessage(self, message, index):
+		self.messageQueueList[index].send(str(message).encode())
+		print("Market sent: {}".format(message))
+		sleep(5)
 
 	def receiveMessage(self, index):
 		message, t = self.messageQueueList[index].receive()
