@@ -1,15 +1,10 @@
 # EnergyMarket
 It simulates a simple energy market using concurrent execution features of Python.
 
-Now we have: Home1 -- message queues -- Market -- shared memory -- Weather
+
+
+Now we have: HOME -- message queue -- HOME -- message queue -- MARKET -- shared memory -- WEATHER
 
 
 
-
-look at algoForMQ.py for how to establish the mqs.
- 
-      
-
-
-
-
+We will add: MARKET -- signal -- EXTERNAL
