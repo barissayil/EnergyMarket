@@ -7,15 +7,16 @@ from concurrent.futures import ThreadPoolExecutor
 import sys
 from threading import Thread, Semaphore
 
-attenteHome=Semaphore(1)
-attenteMarket=Semaphore(1)
-mutex = Lock()
+
+
+
+
 
 class Home(Process):
 
 	numberOfHomes=0
 
-	def __init__(self,productionRate, consumptionRate):
+	def __init__(self, productionRate, consumptionRate):
 		sleep(1)
 		super().__init__()
 		Home.numberOfHomes+=1
@@ -24,21 +25,24 @@ class Home(Process):
 		self.consumptionRate=consumptionRate
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
-		self.messageQueue=MessageQueue(101)
-		print("Home {}'s messageQueue: {}".format(self.homeNumber, self.messageQueue))
+		self.name="Home{}".format(self.homeNumber)
+		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
+		print("{}'s messageQueue: {}".format(self.name, self.messageQueue))
+		
 
 	def run(self):
 
 		while 1:
 
 			self.decideWhatToDo()
+			sleep(1)
 
 			if self.budget<0:
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
 				self.sendMessage('Broke')
 				break
 
-
+			
 
 	def decideWhatToDo(self):
 		print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
@@ -49,17 +53,15 @@ class Home(Process):
 			self.sell()
 
 	def sendMessage(self, message):
-
-		self.messageQueue.send(str(message).encode())
-
+		message= str(self.homeNumber) + " " + message
+		MessageQueue(100).send(str(message).encode())
 		print("Home{} sent: {}".format(self.homeNumber,message))
-
+		
 
 
 	def receiveMessage(self):
-
 		x, t = self.messageQueue.receive()
-		message=x.decode()
+		message = x.decode()
 		print("Home{} recieved: {}".format(self.homeNumber, message))
 		message = int(message)
 		return message
@@ -67,12 +69,8 @@ class Home(Process):
 
 	def buy(self):
 		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
-
 		self.sendMessage('Buy')
-		attenteMarket.acquire()
 		price=self.receiveMessage()
-		attenteHome.release()
-
 		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
 		self.budget+=self.energy*price
 
@@ -94,7 +92,7 @@ class Market(Process):
 	def __init__(self):
 		super().__init__()
 		self.price=20
-		self.messageQueue=MessageQueue(101,IPC_CREAT)
+		self.messageQueue=MessageQueue(100,IPC_CREAT)
 		print("Market: My messageQueue is {}",format(self.messageQueue))
 
 	def lookAtRequests(self):
@@ -103,29 +101,31 @@ class Market(Process):
 			print("Market: Currently dealing with this: {}".format(self.messageQueue))
 			message=self.receiveMessage()
 			self.handleMessage(message)
-			sleep(1)
 
 	def handleMessage(self,message):
+
+		message=message.split()
+		homeNumber=int(message[0])
+		message=message[1]
 
 		if message=='Broke':
 			print('Market: No more homes alive :(')
 
 		elif message=='Buy':
-			with mutex:
+			with priceLock:
 				print('Market: The price of energy is {} dollars.'.format(self.price))
-				self.sendMessage(self.price)
+				self.sendMessage(homeNumber, self.price)
 			print('Market: Energy is bought, increasing the price.')
-			with mutex:
+			with priceLock:
 				self.price+=5
 
 		elif message=='Sell':
 			print('Market: The price of energy is {} dollars.'.format(self.price))
-			with mutex:
-				self.sendMessage(self.price)
+			with priceLock:
+				self.sendMessage(homeNumber, self.price)
 			print('Market: Energy is sold, decreasing the price.')
-			with mutex:
+			with priceLock:
 				self.price-=2
-
 
 
 
@@ -133,17 +133,14 @@ class Market(Process):
 		print("Market: Creating requestsThread")
 		self.lookAtRequests()
 		print('Market: The price of energy is now %s dollars.' %self.price)
+		
 
-
-	def sendMessage(self, message):
-		attenteHome.acquire()
-		self.messageQueue.send(str(message).encode())
+	def sendMessage(self, homeNumber, message):
+		MessageQueue(homeNumber).send(str(message).encode())
 		print("Market sent: {}".format(message))
-		sleep(5)
 
 	def receiveMessage(self):
 		x, t = self.messageQueue.receive()
-		attenteMarket.release()
 		message = x.decode()
 		print("Market recieved: {}".format(message))
 		return message
@@ -152,10 +149,23 @@ class Market(Process):
 
 
 if __name__=="__main__":
-	clear=MessageQueue(101,IPC_CREAT)
+
+
+	clear=MessageQueue(100,IPC_CREAT)
 	clear.remove()
+
+	clear=MessageQueue(1,IPC_CREAT)
+	clear.remove()
+
+	priceLock = Lock()
+
+
 	market=Market()
 	market.start()
 
 	home1=Home(0,10)
 	home1.start()
+
+
+	home2=Home(10,8)
+	home2.start()
