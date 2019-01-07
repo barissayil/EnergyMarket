@@ -22,7 +22,7 @@ class Home(Process):
         self.consumptionRate=consumptionRate
         self.energy=0
         self.homeNumber=Home.numberOfHomes
-        self.mqInit=sysv_ipc.MessageQueue(1) #Default Queue
+        self.mqInit=sysv_ipc.MessageQueue(0) #Default Queue
         self.mqInit.send((str(self.homeNumber)).encode())
         #Tells market Home x neeeds MQ
         #TODO ajouter code pour quand on CTRL+C ca ferme la mq
@@ -96,7 +96,7 @@ class Market(Process):
     def __init__(self):
         super().__init__()
         self.price=20
-        self.mqInit=sysv_ipc.MessageQueue(1,sysv_ipc.IPC_CREAT)
+        self.mqInit=sysv_ipc.MessageQueue(0,sysv_ipc.IPC_CREAT)
         self.mqList=[]
         self.mqList.append(self.mqInit)
         print("The market's mqList: {}".format(self.mqList))
@@ -182,8 +182,17 @@ class Market(Process):
 
 if __name__=="__main__":
 
+    test1=sysv_ipc.MessageQueue(0,sysv_ipc.IPC_CREAT)
+    test1.remove()
+    sleep(1)
+    for i in range(1,5):
+        test1=sysv_ipc.MessageQueue(128+i,sysv_ipc.IPC_CREAT)
+        test1.remove()
+        sleep(1)
     market=Market()
     market.start()
 
     home1=Home(0,10)
     home1.start()
+    home2=Home(0,10)
+    home2.start()
