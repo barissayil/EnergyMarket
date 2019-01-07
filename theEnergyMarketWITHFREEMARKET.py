@@ -7,7 +7,6 @@ from concurrent.futures import ThreadPoolExecutor
 import sys
 from threading import Thread, Semaphore
 
-
 class Home(Process):
 
 	numberOfHomes=0
@@ -28,7 +27,6 @@ class Home(Process):
 		self.freeMessageQueue=MessageQueue(200)
 		print("{}'s messageQueue: {}".format(self.name, self.messageQueue))
 
-
 	def run(self):
 
 		while 1:
@@ -40,8 +38,6 @@ class Home(Process):
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
 				self.sendMessage('Broke')
 				break
-
-
 
 	def decideWhatToDo(self):
 		print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
@@ -101,12 +97,7 @@ class Home(Process):
 			print("I gave free energy "+str(self.energy)+" units")
 			self.sendMessage(self.energy,"Free")
 
-
-
 	# def handleMessage(self):
-
-
-
 class Market(Process):
 
 	def __init__(self):
@@ -147,8 +138,6 @@ class Market(Process):
 			with priceLock:
 				self.price-=2
 
-
-
 	def run(self):
 		print("Market: Creating requestsThread")
 		self.lookAtRequests()
@@ -165,8 +154,6 @@ class Market(Process):
 		print("Market recieved: {}".format(message))
 		return message
 
-
-
 def cleaning():			#To clean the message queues.
 	clear=MessageQueue(100,IPC_CREAT)
 	clear.remove()
@@ -180,27 +167,16 @@ def cleaning():			#To clean the message queues.
 
 if __name__=="__main__":
 
-
 	cleaning()
-
-
-
-
-
 	priceLock = Lock()
-
 
 	market=Market()
 	market.start()
 
-
 	MessageQueue(200,IPC_CREAT)
-
-
 
 	home1=Home(0,10,True)
 	home1.start()
-
 
 	home2=Home(10,8,True)
 	home2.start()
