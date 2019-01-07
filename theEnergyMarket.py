@@ -58,7 +58,7 @@ class Home(Process):
 	def receiveMessage(self):
 		x, t = self.messageQueue.receive()
 		message = x.decode()
-		print("Home{} recieved: {}".format(message))
+		print("Home{} recieved: {}".format(self.homeNumber, message))
 		message = int(message)
 		return message
 
@@ -94,10 +94,9 @@ class Market(Process):
 	def lookAtRequests(self):
 		print("Market: Look at requests launched")
 		while 1:
-			for index in range(len(self.messageQueue)):
-				print("Market: Currently dealing with this: {}".format(self.messageQueue))
-				message=self.receiveMessage()
-				self.handleMessage(message)
+			print("Market: Currently dealing with this: {}".format(self.messageQueue))
+			message=self.receiveMessage()
+			self.handleMessage(message)
 			sleep(1)
 
 	def handleMessage(self,message):
