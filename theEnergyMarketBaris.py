@@ -60,14 +60,12 @@ class Home(Process):
         print("Home{} sent: {}".format(self.homeNumber,message))
         sleep(5)
 
-
     def receiveMessage(self, index):
         message, t = self.messageQueueList[index].receive()
         value = message.decode()
         print("Home{} recieved: {}".format(self.homeNumber,value))
         value = int(value)
         return value
-
 
     def buy(self):
         print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
@@ -76,7 +74,6 @@ class Home(Process):
         price=self.receiveMessage(1)
         print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
         self.budget+=self.energy*price
-
 
     def sell(self):
         print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))

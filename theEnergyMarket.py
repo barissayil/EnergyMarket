@@ -12,143 +12,142 @@ mutex = Lock()
 
 class Home(Process):
 
-	numberOfHomes=0
+    numberOfHomes=0
 
-	def __init__(self,productionRate, consumptionRate):
-		sleep(1)
-		super().__init__()
-		Home.numberOfHomes+=1
-		self.budget=1000
-		self.productionRate=productionRate
-		self.consumptionRate=consumptionRate
-		self.energy=0
-		self.homeNumber=Home.numberOfHomes
-		self.messageQueue=MessageQueue(100)
-		print("Home {}'s messageQueue: {}".format(self.homeNumber, self.messageQueue))
-		self.sendMessage(0)
-		
-
-	def run(self):
-
-		while 1:
-
-			self.decideWhatToDo()
-
-			if self.budget<0:
-				print("Home {}: Shit I'm broke!".format(self.homeNumber))
-				self.sendMessage('Broke')
-				break
-
-			
-
-	def decideWhatToDo(self):
-		print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
-		self.energy=self.productionRate-self.consumptionRate
-		if self.energy<0:
-			self.buy()
-		elif self.energy>0:
-			self.sell()
-
-	def sendMessage(self, message):
-		self.messageQueue.send(str(message).encode())
-		print("Home{} sent: {}".format(self.homeNumber,message))
-		
+    def __init__(self,productionRate, consumptionRate):
+        super().__init__()
+        Home.numberOfHomes+=1
+        self.budget=1000
+        self.productionRate=productionRate
+        self.consumptionRate=consumptionRate
+        self.energy=0
+        self.homeNumber=Home.numberOfHomes
+        self.messageQueue=MessageQueue(100)
+        print("Home {}'s messageQueue: {}".format(self.homeNumber, self.messageQueue))
+        self.sendMessage(0)
 
 
-	def receiveMessage(self):
-		x, t = self.messageQueue.receive()
-		message = x.decode()
-		print("Home{} recieved: {}".format(message))
-		message = int(message)
-		return message
+    def run(self):
+
+        while 1:
+
+            self.decideWhatToDo()
+
+            if self.budget<0:
+                print("Home {}: Shit I'm broke!".format(self.homeNumber))
+                self.sendMessage('Broke')
+                break
 
 
-	def buy(self):
-		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
-		self.sendMessage('Buy')
-		price=self.receiveMessage()
-		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
-		self.budget+=self.energy*price
+
+    def decideWhatToDo(self):
+        print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
+        self.energy=self.productionRate-self.consumptionRate
+        if self.energy<0:
+            self.buy()
+        elif self.energy>0:
+            self.sell()
+
+    def sendMessage(self, message):
+        self.messageQueue.send(str(message).encode())
+        print("Home{} sent: {}".format(self.homeNumber,message))
 
 
-	def sell(self):
-		print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
-		self.sendMessage('Sell')
-		price=self.receiveMessage()
-		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
-		self.budget+=self.energy*price
+
+    def receiveMessage(self):
+        x, t = self.messageQueue.receive()
+        message = x.decode()
+        print("Home{} recieved: {}".format(message))
+        message = int(message)
+        return message
 
 
-	# def handleMessage(self):
+    def buy(self):
+        print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
+        self.sendMessage('Buy')
+        price=self.receiveMessage()
+        print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
+        self.budget+=self.energy*price
+
+
+    def sell(self):
+        print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
+        self.sendMessage('Sell')
+        price=self.receiveMessage()
+        print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
+        self.budget+=self.energy*price
+
+
+    # def handleMessage(self):
 
 
 
 class Market(Process):
 
-	def __init__(self):
-		super().__init__()
-		self.price=20
-		self.messageQueue=MessageQueue(100,IPC_CREAT)
-		print("Market: My messageQueue is {}",format(self.messageQueue))
+    def __init__(self):
+        super().__init__()
+        self.price=20
+        self.messageQueue=MessageQueue(100,IPC_CREAT)
+        print("Market: My messageQueue is {}",format(self.messageQueue))
 
-	def lookAtRequests(self):
-		print("Market: Look at requests launched")
-		while 1:
-			for index in range(len(self.messageQueue)):
-				print("Market: Currently dealing with this: {}".format(self.messageQueue))
-				message=self.receiveMessage()
-				self.handleMessage(message)
-			sleep(1)
+    def lookAtRequests(self):
+        print("Market: Look at requests launched")
+        while 1:
 
-	def handleMessage(self,message):
+            print("Market: Currently dealing with this: {}".format(self.messageQueue))
+            message=self.receiveMessage()
+            self.handleMessage(message)
+            sleep(1)
 
-		if message=='Broke':
-			print('Market: No more homes alive :(')
+    def handleMessage(self,message):
 
-		elif message=='Buy':
-			with mutex:
-				print('Market: The price of energy is {} dollars.'.format(self.price))
-				self.sendMessage(self.price)
-			print('Market: Energy is bought, increasing the price.')
-			with mutex:
-				self.price+=5
+        if message=='Broke':
+            print('Market: No more homes alive :(')
 
-		elif message=='Sell':
-			print('Market: The price of energy is {} dollars.'.format(self.price))
-			with mutex:
-				self.sendMessage(self.price)
-			print('Market: Energy is sold, decreasing the price.')
-			with mutex:
-				self.price-=2
+        elif message=='Buy':
+            with mutex:
+                print('Market: The price of energy is {} dollars.'.format(self.price))
+                self.sendMessage(self.price)
+            print('Market: Energy is bought, increasing the price.')
+            with mutex:
+                self.price+=5
 
-		else:
-			self.dealWithNewHome(message)
+        elif message=='Sell':
+            print('Market: The price of energy is {} dollars.'.format(self.price))
+            with mutex:
+                self.sendMessage(self.price)
+            print('Market: Energy is sold, decreasing the price.')
+            with mutex:
+                self.price-=2
+
+        else:
+            self.dealWithNewHome(message)
 
 
-	def run(self):
-		print("Market: Creating requestsThread")
-		self.lookAtRequests()
-		print('Market: The price of energy is now %s dollars.' %self.price)
-		
+    def run(self):
+        print("Market: Creating requestsThread")
+        self.lookAtRequests()
+        print('Market: The price of energy is now %s dollars.' %self.price)
 
-	def sendMessage(self, message):
-		self.messageQueue.send(str(message).encode())
-		print("Market sent: {}".format(message))
-		sleep(5)
 
-	def receiveMessage(self):
-		x, t = self.messageQueue.receive()
-		message = x.decode()
-		print("Market recieved: {}".format(message))
-		return message
+    def sendMessage(self, message):
+        self.messageQueue.send(str(message).encode())
+        print("Market sent: {}".format(message))
+        sleep(5)
+
+    def receiveMessage(self):
+        x, t = self.messageQueue.receive()
+        message = x.decode()
+        print("Market recieved: {}".format(message))
+        return message
 
 
 
 
 if __name__=="__main__":
 
-	market=Market()
-	market.start()
+    market=Market()
+    market.start()
 
-	home1=Home(0,10)
-	home1.start()
+    home1=Home(0,10)
+    home1.start()
