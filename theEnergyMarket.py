@@ -4,7 +4,6 @@ import random
 from time import sleep
 import datetime
 from concurrent.futures import ThreadPoolExecutor
-import sys
 from threading import Thread, Semaphore
 
 
@@ -308,6 +307,7 @@ if __name__=="__main__":
 
 	market=Market()
 	market.start()
+	
 
 	home1=Home(0, 10, True)
 	home1.start()
@@ -315,7 +315,6 @@ if __name__=="__main__":
 
 	home2=Home(10, 9, True)
 	home2.start()
-
 
 
 	home3=Home(10, 5, False)
