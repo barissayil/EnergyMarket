@@ -15,24 +15,25 @@ class Home(Process):
 
 	numberOfHomes=0
 
-	def __init__(self, productionRate, consumptionRate, isGenerous):
+	def __init__(self, consumptionRate, productionRate, isGenerous):
 		super().__init__()
 		Home.numberOfHomes+=1
 		self.budget=1000
-		self.productionRate=productionRate
 		self.consumptionRate=consumptionRate
+		self.productionRate=productionRate
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
 		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
 		self.isGenerous=isGenerous
-		print("Home{}'s messageQueue: {}".format(self.homeNumber, self.messageQueue))
+		print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
 		
 
 	def run(self):
 
 		while 1:
+			print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
+			self.energy=self.productionRate-self.consumptionRate
 			self.decideWhatToDo()
-
 			if self.budget<0:
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
 				self.sendMessage('Broke')
@@ -41,11 +42,7 @@ class Home(Process):
 
 			
 	def decideWhatToDo(self):
-
-		print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
-
-		self.energy=self.productionRate-self.consumptionRate
-
+		
 		if self.energy<0:
 			self.getEnergy()
 			if self.energy<0:
@@ -113,6 +110,13 @@ class Home(Process):
 
 		print("Home {}: I'm giving away some free energy.".format(self.homeNumber))
 		self.sendMessage('Give')
+		amount=self.receiveMessage()
+
+		if amount>0:
+			print("Home {}: Cool! I gave away {} free energy.".format(self.homeNumber, amount))
+		elif amount==0:
+			print("Home {}: Oh, no one wants my free energy. I'll have to sell it.".format(self.homeNumber))
+			self.sellEnergy()
 
 
 
@@ -123,62 +127,88 @@ class Market(Process):
 		super().__init__()
 		self.price=20
 		self.freeEnergy=0
+		self.freeEnergyLimit=10
 		self.messageQueue=MessageQueue(100,IPC_CREAT)
 		print("Market: My messageQueue is {}",format(self.messageQueue))
 
 	def run(self):
 
-		while 1:
-			self.updatePrice()
-			self.handleMessages()
+		
+		Thread(target=self.updatePrice).start()
+
+
+		with ThreadPoolExecutor(max_workers=3) as executor:
+			executor.submit(self.handleMessages)
+
+
 			
 
 
 	def handleMessages(self):
 
+		while 1:
+			message=self.receiveMessage()
+			message=message.split()
+			homeNumber=int(message[0])
+			amount=int(message[1])
+			message=message[2]
 
-		message=self.receiveMessage()
-		message=message.split()
-		homeNumber=int(message[0])
-		amount=int(message[1])
-		message=message[2]
+			if message=='Broke':
+				print('Market: Oh no! Home{} went broke.'.format(homeNumber))
 
-		if message=='Broke':
-			print('Market: Oh no! Home{} went broke.'.format(homeNumber))
+			elif message=='Buy':
+				with priceLock:
+					print('Market: The price of energy is {} dollars.'.format(self.price))
+					self.sendMessage(homeNumber, self.price)
+				print('Market: Demand is up, increasing the price.')
+				with priceLock:
+					self.price+=5
 
-		elif message=='Buy':
-			with priceLock:
-				print('Market: The price of energy is {} dollars.'.format(self.price))
-				self.sendMessage(homeNumber, self.price)
-			print('Market: Energy is bought, increasing the price.')
-			with priceLock:
-				self.price+=5
+			elif message=='Sell':
+				with priceLock:
+					print('Market: The price of energy is {} dollars.'.format(self.price))
+					self.sendMessage(homeNumber, self.price)
+				print('Market: Supply is up, decreasing the price.')
+				with priceLock:
+					self.price-=1
 
-		elif message=='Sell':
-			with priceLock:
-				print('Market: The price of energy is {} dollars.'.format(self.price))
-				self.sendMessage(homeNumber, self.price)
-			print('Market: Energy is sold, decreasing the price.')
-			with priceLock:
-				self.price-=1
+			elif message=='Give':
 
-		elif message=='Give':
-			print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
-			self.freeEnergy+=amount
+				print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
 
 
-		elif message=='Get':
-			print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
-			if self.freeEnergy>=amount:
-				self.sendMessage(homeNumber, amount)
-			else:
-				self.sendMessage(homeNumber, self.freeEnergy)
+				if self.freeEnergy>=self.freeEnergyLimit:
+					print('Market: Woah slow down! I have way too much free energy.')
+					self.sendMessage(homeNumber, 0)
+
+				else:
+					self.freeEnergy+=amount
+					self.sendMessage(homeNumber, amount)
+
+				print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
+				
+
+
+			elif message=='Get':
+				print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
+				if self.freeEnergy>=amount:
+					self.sendMessage(homeNumber, amount)
+					self.freeEnergy-=amount
+					print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
+				else:
+					self.sendMessage(homeNumber, self.freeEnergy)
+					self.freeEnergy-=0
+					print('Market: Currently no free energy is available'.format(self.freeEnergy))
+
+
 
 
 	def updatePrice(self):
-
-		self.price=int(self.price-(temperature.value/10-sunny.value)/10)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
-		print("Market: Updated the price. It is now {}.".format(self.price))
+		while 1:
+			with priceLock:
+				self.price=int(self.price-(temperature.value/10-sunny.value)/10)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
+				print("Market: Updated the price. It is now {}.".format(self.price))
+			sleep(10)
 
 
 	def sendMessage(self, homeNumber, message):
@@ -309,22 +339,21 @@ if __name__=="__main__":
 	market.start()
 	
 
-	home1=Home(0, 10, True)
+	home1=Home(10, 0, True)
 	home1.start()
 
 
-	home2=Home(10, 9, True)
+	home2=Home(5, 13, True)
 	home2.start()
 
 
-	home3=Home(10, 5, False)
-	home3.start()
+	# home3=Home(5, 15, False)
+	# home3.start()
 
 
-	home4=Home(2, 9, True)
-	home4.start()
+	# home4=Home(9, 2, True)
+	# home4.start()
 
 
-	home4=Home(0, 8, True)
-	home4.start()
-
+	# home4=Home(5, 0, True)
+	# home4.start()
