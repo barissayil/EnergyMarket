@@ -180,3 +180,6 @@ if __name__=="__main__":
 
 	home2=Home(10,8,True)
 	home2.start()
+
+	home3=Home(4,6,True)
+	home3.start()
