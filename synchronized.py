@@ -5,6 +5,7 @@ from time import sleep
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread, Semaphore
+from sys import exit
 
 
 
@@ -193,6 +194,9 @@ class Market(Process):
 				print('Market: Oh no! Home{} went broke.'.format(homeNumber))
 				self.numberOfHomes-=1 #actually a lock is needed but cmon
 
+				if self.numberOfHomes==0:
+					self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
+
 			elif message=='Buy':
 				with priceLock:
 					print('Market: The price of energy is {} dollars.'.format(self.price))
@@ -375,7 +379,7 @@ if __name__=="__main__":
 	priceLock = Lock()
 
 
-	market=Market(2)
+	market=Market(5)
 	market.start()
 	
 
@@ -387,13 +391,13 @@ if __name__=="__main__":
 	home2.start()
 
 
-	# home3=Home(5, 15, False)
-	# home3.start()
+	home3=Home(5, 15, False)
+	home3.start()
 
 
-	# home4=Home(9, 2, True)
-	# home4.start()
+	home4=Home(9, 2, True)
+	home4.start()
 
 
-	# home5=Home(5, 0, True)
-	# home5.start()
+	home5=Home(5, 0, True)
+	home5.start()
