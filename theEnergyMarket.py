@@ -21,6 +21,7 @@ class Home(Process):
 		self.budget=1000
 		self.consumptionRate=consumptionRate
 		self.productionRate=productionRate
+		self.day=1
 		self.energy=0
 		self.homeNumber=Home.numberOfHomes
 		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
@@ -31,7 +32,7 @@ class Home(Process):
 	def run(self):
 
 		while 1:
-			print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
+			print("Home {}: It is day {}. My budget is {} dollars.".format(self.homeNumber, self.day, self.budget))
 			self.energy=self.productionRate-self.consumptionRate
 			self.decideWhatToDo()
 			if self.budget<0:
@@ -39,6 +40,7 @@ class Home(Process):
 				self.sendMessage('Broke')
 				break
 			sleep(5)
+			self.day+=1
 
 			
 	def decideWhatToDo(self):
@@ -347,13 +349,13 @@ if __name__=="__main__":
 	home2.start()
 
 
-	# home3=Home(5, 15, False)
-	# home3.start()
+	home3=Home(5, 15, False)
+	home3.start()
 
 
-	# home4=Home(9, 2, True)
-	# home4.start()
+	home4=Home(9, 2, True)
+	home4.start()
 
 
-	# home4=Home(5, 0, True)
-	# home4.start()
+	home5=Home(5, 0, True)
+	home5.start()
