@@ -18,7 +18,7 @@ class Home(Process):
 	def __init__(self, consumptionRate, productionRate, isGenerous):
 		super().__init__()
 		Home.numberOfHomes+=1
-		self.budget=1000
+		self.budget=10000
 		self.consumptionRate=consumptionRate
 		self.productionRate=productionRate
 		self.day=1
@@ -39,7 +39,7 @@ class Home(Process):
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
 				self.sendMessage('Broke')
 				break
-			sleep(5)
+			sleep(1)
 			self.day+=1
 
 			
@@ -137,16 +137,18 @@ class Market(Process):
 
 		
 		Thread(target=self.updatePrice).start()
+		Thread(target=self.handleMessages).start()
 
 
-		with ThreadPoolExecutor(max_workers=3) as executor:
-			executor.submit(self.handleMessages)
 
-
-			
 
 
 	def handleMessages(self):
+		with ThreadPoolExecutor(max_workers=3) as executor:
+			executor.submit(self.waitForMessage)
+
+
+	def waitForMessage(self):
 
 		while 1:
 			message=self.receiveMessage()
