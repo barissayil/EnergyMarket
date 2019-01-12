@@ -5,8 +5,7 @@ from time import sleep
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread, Semaphore
-from os import kill, getpid
-import signal
+
 
 
 
@@ -32,8 +31,11 @@ class Home(Process):
 	def run(self):
 
 		while 1:
+			receiveMessage()
 			print("Home {}: My budget is {} dollars.".format(self.homeNumber,self.budget))
 			self.energy=self.productionRate-self.consumptionRate
+			if self.energy < 0:
+				self.sendMessage(self.energy)
 			self.decideWhatToDo()
 			if self.budget<0:
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
@@ -55,11 +57,11 @@ class Home(Process):
 				self.sellEnergy()
 
 
-	def sendMessage(self, message):
+	def sendMessage(self,nbOfQueue, message):
 
 		amount=abs(self.energy)
 		message= str(self.homeNumber) + " " + str(amount) + " " + message
-		MessageQueue(100).send(str(message).encode())
+		MessageQueue(nbOfQueue).send(str(message).encode())
 		print("Home{} sent: {}".format(self.homeNumber,message))
 
 
@@ -119,24 +121,6 @@ class Home(Process):
 			print("Home {}: Oh, no one wants my free energy. I'll have to sell it.".format(self.homeNumber))
 			self.sellEnergy()
 
-class External(Process):
-	def __init__(self,market_PID):
-		super().__init__()
-		self.marketPID = market_PID
-		self.evenement=False
-		print(self.marketPID)
-	def run(self):
-		while 1:
-			self.chances_evt=20
-			while self.evenement == False :
-				sleep(1)
-				event = random.randint(0,self.chances_evt)
-				if event == 1:
-					kill(self.marketPID, signal.SIGUSR1)
-					self.evenement=True
-					print("External: A catastrophe has occurred")
-				else:
-					self.chances_evt -=1
 
 
 class Market(Process):
@@ -149,29 +133,58 @@ class Market(Process):
 		self.freeEnergyLimit=10
 		self.messageQueue=MessageQueue(100,IPC_CREAT)
 		print("Market: My messageQueue is {}",format(self.messageQueue))
-		self.eventOccurring=False
-		myPID=getpid()
-		external_process=External(myPID)
-		external_process.start()
 
 	def run(self):
 
+
 		Thread(target=self.updatePrice).start()
-		print("On arrive la")
-		#with ThreadPoolExecutor(max_workers=3) as executor: #TODO A CHANGER ( 3Thread quu lisent en continu)
-		#	executor.submit(self.handleMessages) #Idealement 1 thread qui lit et 3 qui traitent l'info
-		print("On arrive ici")
+		Thread(target=self.cycle).start()
+
+		with ThreadPoolExecutor(max_workers=3) as executor:
+			executor.submit(self.handleMessages)
+
+	def cycle(self):
 		while 1:
-			print("On cherche des signaux")
-			signal.signal(signal.SIGUSR1, somethingHappened)
-			if self.eventOccurring==True:
-				print("Event occurr")
-			sleep(1)
+
+			# Send msg to every Home so they begin the cycle
+			for i in range(Home.numberOfHomes):
+				self.sendMessage(i,"Go")
+			# Wait for everyones response
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+
+			# Send msg to everyone so they can take the energy they need
+			for i in range(Home.numberOfHomes):
+				self.sendMessage(i,"Demands")
+			# Wait for everyones response
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+			# Send msg to everyone so they give energy if they can
+			for i in range(Home.numberOfHomes):
+				self.sendMessage(i,"Donations")
+			# Wait for everyones response
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+
+			# Send msg to everyone so they can buy and sell
+			for i in range(Home.numberOfHomes):
+				self.sendMessage(i,"Market")
+			# Wait for everyones response
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
 
 	def handleMessages(self):
 
 		while 1:
-			message=self.receiveMessage() #TODO ajouter securite
+			message=self.receiveMessage()
 			message=message.split()
 			homeNumber=int(message[0])
 			amount=int(message[1])
@@ -200,14 +213,14 @@ class Market(Process):
 
 				print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
 
-
 				if self.freeEnergy>=self.freeEnergyLimit:
 					print('Market: Woah slow down! I have way too much free energy.')
 					self.sendMessage(homeNumber, 0)
 
 				else:
-					self.freeEnergy+=amount
-					self.sendMessage(homeNumber, amount)
+					with energyLock :
+						self.freeEnergy+=amount
+						self.sendMessage(homeNumber, amount)
 
 				print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
 
@@ -216,8 +229,9 @@ class Market(Process):
 			elif message=='Get':
 				print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
 				if self.freeEnergy>=amount:
-					self.sendMessage(homeNumber, amount)
-					self.freeEnergy-=amount
+					with energyLock:
+						self.sendMessage(homeNumber, amount)
+						self.freeEnergy-=amount
 					print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
 				else:
 					self.sendMessage(homeNumber, self.freeEnergy)
@@ -337,11 +351,6 @@ def clean():									#To clean the message queues.
 	clear=MessageQueue(5,IPC_CREAT)
 	clear.remove()
 
-def somethingHappened(typeOfSignal, frame):
-	print("handler")
-	if (typeOfSignal == signal.SIGUSR1):
-		self.eventOccurring = ~self.eventOccurring #TODO implement: price variates over events (for now they are bad)
-		#TODO implement more signals, bad events and good events
 
 if __name__=="__main__":
 
@@ -362,18 +371,18 @@ if __name__=="__main__":
 
 
 	priceLock = Lock()
-
+	energyLock = Lock()
 
 	market=Market()
 	market.start()
 
 
-	#home1=Home(10, 0, True)
-	#home1.start()
+	home1=Home(10, 0, True)
+	home1.start()
 
 
-	#home2=Home(5, 13, True)
-	#home2.start()
+	home2=Home(5, 13, True)
+	home2.start()
 
 
 	# home3=Home(5, 15, False)

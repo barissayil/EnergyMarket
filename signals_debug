@@ -1,0 +1,384 @@
+Market: My messageQueue is {} Key=100, id=1572864
+Home1: My messageQueue is Key=1, id=1605633
+Home2: My messageQueue is Key=2, id=1638402
+Market: Updated the price. It is now 19.
+Home 1: My budget is 1000 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 0
+Market: Currently no free energy is available
+Home1 recieved: 0
+Home 1: Dammit there's no free energy, I have to buy some.
+Home 1: What's the price? I wanna buy some energy.
+Market recieved: 1 10 Buy
+Market: The price of energy is 19 dollars.
+Market sent: 19
+Market: Demand is up, increasing the price.
+Home1 sent: 1 10 Buy
+Home1 recieved: 19
+Home 1: It seems the price is 19 dollars.
+Home 2: My budget is 1000 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 8 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 1: My budget is 810 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 8
+Market: Currently no free energy is available
+Home1 recieved: 8
+Home 1: Nice! I got 8 free energy.
+Home 1: Oh, it's not enough. I still have to buy some energy.
+Home 1: What's the price? I wanna buy some energy.
+Home1 sent: 1 2 Buy
+Market recieved: 1 2 Buy
+Market: The price of energy is 24 dollars.
+Market sent: 24
+Market: Demand is up, increasing the price.
+Home1 recieved: 24
+Home 1: It seems the price is 24 dollars.
+Home 2: My budget is 1000 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 16 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 2: My budget is 1000 dollars.
+Home 1: My budget is 762 dollars.
+Home 2: I'm giving away some free energy.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market: Woah slow down! I have way too much free energy.
+Market sent: 0
+Market: Currently 16 units of free energy available
+Market recieved: 1 10 Get
+Home2 recieved: 0
+Market: LOL! Home1 wants 10 units of energy for free!
+Home 2: Oh, no one wants my free energy. I'll have to sell it.
+Market sent: 10
+Home 2: What's the price? I wanna sell some energy.
+Market: Currently 6 units of free energy available
+Home1 recieved: 10
+Home2 sent: 2 8 Sell
+Market recieved: 2 8 Sell
+Home 1: Nice! I got 10 free energy.
+Market: The price of energy is 29 dollars.
+Home 1: Perfect! I have all my energy needs covered.
+Market sent: 29
+Market: Supply is up, decreasing the price.
+Home2 recieved: 29
+Home 2: It seems the price is 29 dollars.
+Market: Updated the price. It is now 27.
+External: A catastrophe has occurred
+[1]    15661 user-defined signal 1  python3 theEnergyMarketSIGNALS.py
+➜  EnergyMarket git:(master) ✗ Home 1: My budget is 762 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 6
+Market: Currently no free energy is available
+Home1 recieved: 6
+Home 1: Nice! I got 6 free energy.
+Home 1: Oh, it's not enough. I still have to buy some energy.
+Home 1: What's the price? I wanna buy some energy.
+Home1 sent: 1 4 Buy
+Market recieved: 1 4 Buy
+Market: The price of energy is 27 dollars.
+Market sent: 27
+Home1 recieved: 27
+Market: Demand is up, increasing the price.
+Home 1: It seems the price is 27 dollars.
+Home 2: My budget is 1232 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Home2 recieved: 8
+Market: Currently 14 units of free energy available
+Home 2: Cool! I gave away 8 free energy.
+
+➜  EnergyMarket git:(master) ✗ Market: Updated the price. It is now 31.
+Home 1: My budget is 654 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 10
+Market: Currently 4 units of free energy available
+Home1 recieved: 10
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Home 2: My budget is 1232 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Home2 recieved: 8
+Market: Currently 12 units of free energy available
+Home 2: Cool! I gave away 8 free energy.
+Home 2: My budget is 1232 dollars.
+Home 1: My budget is 654 dollars.
+Home 1: I wanna get some free energy.
+Home 2: I'm giving away some free energy.
+Home1 sent: 1 10 Get
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market: Woah slow down! I have way too much free energy.
+Market sent: 0
+Market: Currently 12 units of free energy available
+Home2 recieved: 0
+Market recieved: 1 10 Get
+Home 2: Oh, no one wants my free energy. I'll have to sell it.
+Market: LOL! Home1 wants 10 units of energy for free!
+Home 2: What's the price? I wanna sell some energy.
+Market sent: 10
+Home2 sent: 2 8 Sell
+Market: Currently 2 units of free energy available
+Home1 recieved: 10
+Market recieved: 2 8 Sell
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Market: The price of energy is 31 dollars.
+Market sent: 31
+Market: Supply is up, decreasing the price.
+Home2 recieved: 31
+Home 2: It seems the price is 31 dollars.
+Home 1: My budget is 654 dollars.
+Market: Updated the price. It is now 29.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 2
+Market: Currently no free energy is available
+Home1 recieved: 2
+Home 1: Nice! I got 2 free energy.
+Home 1: Oh, it's not enough. I still have to buy some energy.
+Home 1: What's the price? I wanna buy some energy.
+Home1 sent: 1 8 Buy
+Market recieved: 1 8 Buy
+Market: The price of energy is 29 dollars.
+Market sent: 29
+Market: Demand is up, increasing the price.
+Home1 recieved: 29
+Home 1: It seems the price is 29 dollars.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 10 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 1: My budget is 422 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 10
+Market: Currently 0 units of free energy available
+Home1 recieved: 10
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 8 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 2: My budget is 1480 dollars.
+Market: Updated the price. It is now 33.
+Home 2: I'm giving away some free energy.
+Home 1: My budget is 422 dollars.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Home 1: I wanna get some free energy.
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Home1 sent: 1 10 Get
+Market sent: 8
+Market: Currently 16 units of free energy available
+Home2 recieved: 8
+Market recieved: 1 10 Get
+Home 2: Cool! I gave away 8 free energy.
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 10
+Market: Currently 6 units of free energy available
+Home1 recieved: 10
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Home 1: My budget is 422 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 6
+Market: Currently no free energy is available
+Home1 recieved: 6
+Home 1: Nice! I got 6 free energy.
+Home 1: Oh, it's not enough. I still have to buy some energy.
+Home 1: What's the price? I wanna buy some energy.
+Home1 sent: 1 4 Buy
+Market recieved: 1 4 Buy
+Market: The price of energy is 33 dollars.
+Market sent: 33
+Home1 recieved: 33
+Market: Demand is up, increasing the price.
+Home 1: It seems the price is 33 dollars.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 14 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 1: My budget is 290 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 10
+Home1 recieved: 10
+Market: Currently 4 units of free energy available
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Market: Updated the price. It is now 37.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 12 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 1: My budget is 290 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 10
+Market: Currently 2 units of free energy available
+Home1 recieved: 10
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 10 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 1: My budget is 290 dollars.
+Market: Updated the price. It is now 36.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 10
+Market: Currently 0 units of free energy available
+Home1 recieved: 10
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 8 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 1: My budget is 290 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 8
+Market: Currently no free energy is available
+Home1 recieved: 8
+Home 1: Nice! I got 8 free energy.
+Home 1: Oh, it's not enough. I still have to buy some energy.
+Home 1: What's the price? I wanna buy some energy.
+Home1 sent: 1 2 Buy
+Market recieved: 1 2 Buy
+Market: The price of energy is 36 dollars.
+Market sent: 36
+Home1 recieved: 36
+Market: Demand is up, increasing the price.
+Home 1: It seems the price is 36 dollars.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 16 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 1: My budget is 218 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 10
+Home1 recieved: 10
+Market: Currently 6 units of free energy available
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Market: Updated the price. It is now 40.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 14 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home 1: My budget is 218 dollars.
+Home 1: I wanna get some free energy.
+Home1 sent: 1 10 Get
+Market recieved: 1 10 Get
+Market: LOL! Home1 wants 10 units of energy for free!
+Market sent: 10
+Market: Currently 4 units of free energy available
+Home1 recieved: 10
+Home 1: Nice! I got 10 free energy.
+Home 1: Perfect! I have all my energy needs covered.
+Home 2: My budget is 1480 dollars.
+Home 2: I'm giving away some free energy.
+Home2 sent: 2 8 Give
+Market recieved: 2 8 Give
+Market: WOW! Home2 is giving away 8 units of energy for free!
+Market sent: 8
+Market: Currently 12 units of free energy available
+Home2 recieved: 8
+Home 2: Cool! I gave away 8 free energy.
+Home
