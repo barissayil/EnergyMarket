@@ -138,6 +138,7 @@ class Market(Process):
 		self.numberOfHomes=numberOfHomes
 		self.numberOfHomeThatAreDone=0
 		self.numberOfHomeThatAreDoneLock=Lock()
+		self.aliveHomes=[True]*numberOfHomes
 		self.price=20
 		self.freeEnergy=0
 		self.freeEnergyLimit=10
@@ -159,13 +160,14 @@ class Market(Process):
 
 		print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
 
-		if self.numberOfHomeThatAreDone==self.numberOfHomes:
+		if self.numberOfHomeThatAreDone==len(self.aliveHomes):
 			self.numberOfHomeThatAreDone=0
 			self.day+=1
 			print("\n")
 			print('Market: IT IS DAY {}!'.format(self.day))
-			for i in range (1,self.numberOfHomes+1):						#THIS ISNT RIGHT, MUST USE A LIST
-				self.sendMessage(i,'Go')
+			for i in range (1,self.numberOfHomes+1):						
+				if self.aliveHomes[i-1]:
+					self.sendMessage(i,'Go')
 
 
 
@@ -185,7 +187,9 @@ class Market(Process):
 
 			if message=='Broke':
 				print('Market: Oh no! Home{} went broke.'.format(homeNumber))
-				self.numberOfHomes-=1 #actually a lock is needed but cmon
+				# self.numberOfHomes-=1 #actually a lock is needed but cmon
+				self.aliveHomes[homeNumber-1]=False
+				print(self.aliveHomes)
 				print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
 
 				if self.numberOfHomes==0:
@@ -377,20 +381,20 @@ if __name__=="__main__":
 	priceLock = Lock()
 
 
-	market=Market(3)
+	market=Market(2)
 	market.start()
 	
 
-	home1=Home(15, 14, True)
+	home1=Home(100, 14, True)
 	home1.start()
 
 
-	home2=Home(6, 2, True)
+	home2=Home(6, 20, True)
 	home2.start()
 
 
-	home3=Home(10, 0, False)
-	home3.start()
+	# home3=Home(10, 10, False)
+	# home3.start()
 
 
 	# home4=Home(9, 2, True)
