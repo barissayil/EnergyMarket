@@ -139,7 +139,10 @@ class Market(Process):
 		self.numberOfHomeThatAreDone=0
 		self.numberOfHomeThatAreDoneLock=Lock()
 		self.aliveHomes=[True]*numberOfHomes
-		self.price=20
+		self.price=200
+		self.gamma=.98  # long-term attenuation coefficient for
+		self.f=0		# internal factor (amount bought-amount sold)
+		self.alpha=1	# modulating coefficient for factor for internal factors
 		self.freeEnergy=0
 		self.freeEnergyLimit=10
 		self.day=1
@@ -151,7 +154,7 @@ class Market(Process):
 	def run(self):
 
 		
-		Thread(target=self.updatePrice).start()
+
 		Thread(target=self.handleMessages).start()
 
 
@@ -160,14 +163,16 @@ class Market(Process):
 
 		print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
 
-		if self.numberOfHomeThatAreDone==len(self.aliveHomes):
+		if self.numberOfHomeThatAreDone==self.numberOfHomes:
 			self.numberOfHomeThatAreDone=0
 			self.day+=1
 			print("\n")
 			print('Market: IT IS DAY {}!'.format(self.day))
-			for i in range (1,self.numberOfHomes+1):						
+			self.updatePrice()
+			for i in range (1,len(self.aliveHomes)+1):						
 				if self.aliveHomes[i-1]:
 					self.sendMessage(i,'Go')
+
 
 
 
@@ -187,9 +192,9 @@ class Market(Process):
 
 			if message=='Broke':
 				print('Market: Oh no! Home{} went broke.'.format(homeNumber))
-				# self.numberOfHomes-=1 #actually a lock is needed but cmon
 				self.aliveHomes[homeNumber-1]=False
 				print(self.aliveHomes)
+				self.numberOfHomes-=1 #lock
 				print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
 
 				if self.numberOfHomes==0:
@@ -204,6 +209,9 @@ class Market(Process):
 				with priceLock:
 					self.price+=5
 
+				with fLock:
+					self.f+=1
+
 
 			elif message=='Sell':
 				with priceLock:
@@ -212,6 +220,9 @@ class Market(Process):
 				print('Market: Supply is up, decreasing the price.')
 				with priceLock:
 					self.price-=1
+
+				with fLock:
+					self.f-=1
 				
 			elif message=='Give':
 				print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
@@ -250,11 +261,13 @@ class Market(Process):
 
 
 	def updatePrice(self):
-		while 1:
-			with priceLock:
-				self.price=int(self.price-(temperature.value/10-sunny.value)/10)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
-				print("Market: Updated the price. It is now {}.".format(self.price))
-			sleep(5)
+		with priceLock:
+			self.price=int(self.gamma*self.price+self.alpha*self.f)
+			with fLock:
+				self.f=0
+			if self.price<100:
+				self.price=100
+			print("Market: Updated the price. It is now {}.".format(self.price))
 
 
 	def sendMessage(self, homeNumber, message):
@@ -379,21 +392,22 @@ if __name__=="__main__":
 
 
 	priceLock = Lock()
+	fLock=Lock()
 
 
 	market=Market(2)
 	market.start()
 	
 
-	home1=Home(100, 14, True)
+	home1=Home(10, 0, True)
 	home1.start()
 
 
-	home2=Home(6, 20, True)
+	home2=Home(5, 10, True)
 	home2.start()
 
 
-	# home3=Home(10, 10, False)
+	# home3=Home(9, 9, False)
 	# home3.start()
 
 
