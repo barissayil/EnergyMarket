@@ -5,6 +5,8 @@ from time import sleep
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread, Semaphore
+from sys import exit
+
 
 import pandas as pd
 import numpy as np
@@ -22,7 +24,7 @@ class Home(Process):
 	def __init__(self, consumptionRate, productionRate, isGenerous):
 		super().__init__()
 		Home.numberOfHomes+=1
-		self.budget=1000
+		self.budget=100000
 		self.budgetSeries=pd.Series()
 		self.consumptionRate=consumptionRate
 		self.productionRate=productionRate
@@ -46,9 +48,17 @@ class Home(Process):
 				self.sendMessage('Broke')
 				self.showBudgetGraph()
 				break
-			sleep(1)
+			self.finishCurrentDay()
+			self.waitForNextDay()
 			self.day+=1
 
+
+	def finishCurrentDay(self):
+		self.sendMessage('Done')
+
+			
+	def waitForNextDay(self):
+		message=self.receiveMessage()
 
 
 	def showBudgetGraph(self):
@@ -58,7 +68,7 @@ class Home(Process):
 		plt.ylabel("Home{}'s Budget".format(self.homeNumber))
 		plt.show()
 
-			
+
 	def decideWhatToDo(self):
 		
 		if self.energy<0:
@@ -85,7 +95,6 @@ class Home(Process):
 		x, t = self.messageQueue.receive()
 		message = x.decode()
 		print("Home{} recieved: {}".format(self.homeNumber, message))
-		message = int(message)
 		return message
 
 
@@ -93,7 +102,7 @@ class Home(Process):
 
 		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
 		self.sendMessage('Buy')
-		price=self.receiveMessage()
+		price=int(self.receiveMessage())
 		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
 		self.budget+=self.energy*price
 
@@ -102,7 +111,7 @@ class Home(Process):
 
 		print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
 		self.sendMessage('Sell')
-		price=self.receiveMessage()
+		price=int(self.receiveMessage())
 		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
 		self.budget+=self.energy*price
 
@@ -110,7 +119,7 @@ class Home(Process):
 
 		print("Home {}: I wanna get some free energy.".format(self.homeNumber))
 		self.sendMessage('Get')
-		amount=self.receiveMessage()
+		amount=int(self.receiveMessage())
 		if amount==0:
 			print("Home {}: Dammit there's no free energy, I have to buy some.".format(self.homeNumber))
 			return
@@ -122,13 +131,11 @@ class Home(Process):
 		else:
 			print("Home {}: Oh, it's not enough. I still have to buy some energy.".format(self.homeNumber))
 
-
-
 	def giveEnergy(self):
 
 		print("Home {}: I'm giving away some free energy.".format(self.homeNumber))
 		self.sendMessage('Give')
-		amount=self.receiveMessage()
+		amount=int(self.receiveMessage())
 
 		if amount>0:
 			print("Home {}: Cool! I gave away {} free energy.".format(self.homeNumber, amount))
@@ -138,18 +145,25 @@ class Home(Process):
 
 
 
+
 class Market(Process):
 
-	def __init__(self):
+	def __init__(self, numberOfHomes):
 
 		super().__init__()
+		self.numberOfHomes=numberOfHomes
+		self.numberOfHomeThatAreDone=0
+		self.numberOfHomeThatAreDoneLock=Lock()
+		self.aliveHomes=[True]*numberOfHomes
 		self.price=20
 		self.priceSeries=pd.Series()
-		self.day=1
 		self.freeEnergy=0
 		self.freeEnergyLimit=10
+		self.day=1
 		self.messageQueue=MessageQueue(100,IPC_CREAT)
 		print("Market: My messageQueue is {}",format(self.messageQueue))
+
+
 
 	def run(self):
 
@@ -157,8 +171,7 @@ class Market(Process):
 		Thread(target=self.updatePrice).start()
 		Thread(target=self.handleMessages).start()
 
-
-		sleep(20)
+		sleep(10)
 		self.showPriceGraph()
 
 
@@ -168,7 +181,22 @@ class Market(Process):
 		plt.xlabel('Day')
 		plt.ylabel('Price of Energy')
 		plt.show()
-		
+
+
+
+	def goToNextDay(self):
+
+		print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
+
+		if self.numberOfHomeThatAreDone==self.numberOfHomes:
+			self.numberOfHomeThatAreDone=0
+			self.day+=1
+			print("\n")
+			print('Market: IT IS DAY {}!'.format(self.day))
+			for i in range (1,len(self.aliveHomes)+1):						
+				if self.aliveHomes[i-1]:
+					self.sendMessage(i,'Go')
+
 
 
 	def handleMessages(self):
@@ -187,6 +215,15 @@ class Market(Process):
 
 			if message=='Broke':
 				print('Market: Oh no! Home{} went broke.'.format(homeNumber))
+				# self.numberOfHomes-=1 #actually a lock is needed but cmon
+				self.aliveHomes[homeNumber-1]=False
+				print(self.aliveHomes)
+				self.numberOfHomes-=1
+				print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
+
+				if self.numberOfHomes==0:
+					self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
+				self.goToNextDay()
 
 			elif message=='Buy':
 				with priceLock:
@@ -196,6 +233,7 @@ class Market(Process):
 				with priceLock:
 					self.price+=5
 
+
 			elif message=='Sell':
 				with priceLock:
 					print('Market: The price of energy is {} dollars.'.format(self.price))
@@ -203,24 +241,17 @@ class Market(Process):
 				print('Market: Supply is up, decreasing the price.')
 				with priceLock:
 					self.price-=1
-
+				
 			elif message=='Give':
-
 				print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
-
-
 				if self.freeEnergy>=self.freeEnergyLimit:
 					print('Market: Woah slow down! I have way too much free energy.')
 					self.sendMessage(homeNumber, 0)
-
 				else:
 					self.freeEnergy+=amount
 					self.sendMessage(homeNumber, amount)
-
 				print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
 				
-
-
 			elif message=='Get':
 				print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
 				if self.freeEnergy>=amount:
@@ -232,17 +263,30 @@ class Market(Process):
 					self.freeEnergy-=0
 					print('Market: Currently no free energy is available'.format(self.freeEnergy))
 
+			elif message=='Done':
+				print('Market: Home{} is done.'.format(homeNumber))
+				with self.numberOfHomeThatAreDoneLock:
+					self.numberOfHomeThatAreDone+=1
+					print(self.numberOfHomeThatAreDone)
+				self.goToNextDay()
+
+			
+
+
+
+
 
 
 
 	def updatePrice(self):
 		while 1:
 			with priceLock:
-				self.priceSeries=self.priceSeries.append(pd.Series([self.price], index=[self.day]))
 				self.price=int(self.price-(temperature.value/10-sunny.value)/10)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
-				print("Market: Day {}. The price is now {}.".format(self.day,self.price))
-			sleep(1)
-			self.day+=1
+				self.priceSeries=self.priceSeries.append(pd.Series([self.price], index=[self.day]))
+				if self.price<10:
+					self.price=10
+				print("Market: Updated the price. It is now {}.".format(self.price))
+			sleep(5)
 
 
 	def sendMessage(self, homeNumber, message):
@@ -369,7 +413,7 @@ if __name__=="__main__":
 	priceLock = Lock()
 
 
-	market=Market()
+	market=Market(3)
 	market.start()
 	
 
@@ -377,17 +421,17 @@ if __name__=="__main__":
 	home1.start()
 
 
-	home2=Home(2, 10, True)
+	home2=Home(10, 12, True)
 	home2.start()
 
 
-	home3=Home(5, 0, False)
+	home3=Home(9, 4, False)
 	home3.start()
 
 
-	home4=Home(9, 2, True)
-	home4.start()
+	# home4=Home(9, 2, True)
+	# home4.start()
 
 
-	home5=Home(5, 0, True)
-	home5.start()
+	# home5=Home(5, 0, True)
+	# home5.start()
