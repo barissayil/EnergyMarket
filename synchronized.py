@@ -19,7 +19,7 @@ class Home(Process):
 	def __init__(self, consumptionRate, productionRate, isGenerous):
 		super().__init__()
 		Home.numberOfHomes+=1
-		self.budget=10000
+		self.budget=100000
 		self.consumptionRate=consumptionRate
 		self.productionRate=productionRate
 		self.day=1
@@ -40,7 +40,6 @@ class Home(Process):
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
 				self.sendMessage('Broke')
 				break
-			# sleep(1)
 			self.finishCurrentDay()
 			self.waitForNextDay()
 			self.day+=1
@@ -116,8 +115,6 @@ class Home(Process):
 		else:
 			print("Home {}: Oh, it's not enough. I still have to buy some energy.".format(self.homeNumber))
 
-
-
 	def giveEnergy(self):
 
 		print("Home {}: I'm giving away some free energy.".format(self.homeNumber))
@@ -148,6 +145,8 @@ class Market(Process):
 		self.messageQueue=MessageQueue(100,IPC_CREAT)
 		print("Market: My messageQueue is {}",format(self.messageQueue))
 
+
+
 	def run(self):
 
 		
@@ -158,21 +157,15 @@ class Market(Process):
 
 	def goToNextDay(self):
 
-		allHomesAreDone=False
+		print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
 
-		while not allHomesAreDone:
-			if self.numberOfHomeThatAreDone==self.numberOfHomes:
-				allHomesAreDone=True
-				self.numberOfHomeThatAreDone=0
-
-		self.day+=1
-		print("\n")
-		print('Market: IT IS DAY {}!'.format(self.day))
-
-		for i in range (1,self.numberOfHomes+1):
-			self.sendMessage(i,'Go')
-
-
+		if self.numberOfHomeThatAreDone==self.numberOfHomes:
+			self.numberOfHomeThatAreDone=0
+			self.day+=1
+			print("\n")
+			print('Market: IT IS DAY {}!'.format(self.day))
+			for i in range (1,self.numberOfHomes+1):						#THIS ISNT RIGHT, MUST USE A LIST
+				self.sendMessage(i,'Go')
 
 
 
@@ -193,9 +186,11 @@ class Market(Process):
 			if message=='Broke':
 				print('Market: Oh no! Home{} went broke.'.format(homeNumber))
 				self.numberOfHomes-=1 #actually a lock is needed but cmon
+				print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
 
 				if self.numberOfHomes==0:
 					self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
+				self.goToNextDay()
 
 			elif message=='Buy':
 				with priceLock:
@@ -204,6 +199,7 @@ class Market(Process):
 				print('Market: Demand is up, increasing the price.')
 				with priceLock:
 					self.price+=5
+
 
 			elif message=='Sell':
 				with priceLock:
@@ -238,6 +234,8 @@ class Market(Process):
 				print('Market: Home{} is done.'.format(homeNumber))
 				with self.numberOfHomeThatAreDoneLock:
 					self.numberOfHomeThatAreDone+=1
+					print(self.numberOfHomeThatAreDone)
+				self.goToNextDay()
 
 			
 
@@ -252,7 +250,7 @@ class Market(Process):
 			with priceLock:
 				self.price=int(self.price-(temperature.value/10-sunny.value)/10)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
 				print("Market: Updated the price. It is now {}.".format(self.price))
-			self.goToNextDay()
+			sleep(5)
 
 
 	def sendMessage(self, homeNumber, message):
@@ -379,25 +377,25 @@ if __name__=="__main__":
 	priceLock = Lock()
 
 
-	market=Market(5)
+	market=Market(3)
 	market.start()
 	
 
-	home1=Home(10, 0, True)
+	home1=Home(15, 14, True)
 	home1.start()
 
 
-	home2=Home(5, 13, True)
+	home2=Home(6, 2, True)
 	home2.start()
 
 
-	home3=Home(5, 15, False)
+	home3=Home(10, 0, False)
 	home3.start()
 
 
-	home4=Home(9, 2, True)
-	home4.start()
+	# home4=Home(9, 2, True)
+	# home4.start()
 
 
-	home5=Home(5, 0, True)
-	home5.start()
+	# home5=Home(5, 0, True)
+	# home5.start()
