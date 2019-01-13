@@ -7,13 +7,13 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Thread, Semaphore
 from sys import exit
 
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 
 #Important: When the graphs appear close them and then press CTRL+Z on the terminal to safely close the program.
+
 
 
 
@@ -53,20 +53,21 @@ class Home(Process):
 			self.day+=1
 
 
-	def finishCurrentDay(self):
-		self.sendMessage('Done')
-
-			
-	def waitForNextDay(self):
-		message=self.receiveMessage()
-
-
 	def showBudgetGraph(self):
 
 		self.budgetSeries.plot()
 		plt.xlabel('Day')
 		plt.ylabel("Home{}'s Budget".format(self.homeNumber))
 		plt.show()
+
+
+
+	def finishCurrentDay(self):
+		self.sendMessage('Done')
+
+			
+	def waitForNextDay(self):
+		message=self.receiveMessage()
 
 
 	def decideWhatToDo(self):
@@ -155,8 +156,11 @@ class Market(Process):
 		self.numberOfHomeThatAreDone=0
 		self.numberOfHomeThatAreDoneLock=Lock()
 		self.aliveHomes=[True]*numberOfHomes
-		self.price=20
+		self.price=200
 		self.priceSeries=pd.Series()
+		self.gamma=1 	# long-term attenuation coefficient for
+		self.f=0			# internal factor (amount bought-amount sold)
+		self.alpha=0		# modulating coefficient for factor for internal factors
 		self.freeEnergy=0
 		self.freeEnergyLimit=10
 		self.day=1
@@ -168,10 +172,10 @@ class Market(Process):
 	def run(self):
 
 		
-		Thread(target=self.updatePrice).start()
+
 		Thread(target=self.handleMessages).start()
 
-		sleep(10)
+		sleep(3)
 		self.showPriceGraph()
 
 
@@ -193,9 +197,11 @@ class Market(Process):
 			self.day+=1
 			print("\n")
 			print('Market: IT IS DAY {}!'.format(self.day))
+			self.updatePrice()
 			for i in range (1,len(self.aliveHomes)+1):						
 				if self.aliveHomes[i-1]:
 					self.sendMessage(i,'Go')
+
 
 
 
@@ -215,10 +221,9 @@ class Market(Process):
 
 			if message=='Broke':
 				print('Market: Oh no! Home{} went broke.'.format(homeNumber))
-				# self.numberOfHomes-=1 #actually a lock is needed but cmon
 				self.aliveHomes[homeNumber-1]=False
 				print(self.aliveHomes)
-				self.numberOfHomes-=1
+				self.numberOfHomes-=1 #lock
 				print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
 
 				if self.numberOfHomes==0:
@@ -230,8 +235,9 @@ class Market(Process):
 					print('Market: The price of energy is {} dollars.'.format(self.price))
 					self.sendMessage(homeNumber, self.price)
 				print('Market: Demand is up, increasing the price.')
-				with priceLock:
-					self.price+=5
+
+				with fLock:
+					self.f+=1
 
 
 			elif message=='Sell':
@@ -239,8 +245,9 @@ class Market(Process):
 					print('Market: The price of energy is {} dollars.'.format(self.price))
 					self.sendMessage(homeNumber, self.price)
 				print('Market: Supply is up, decreasing the price.')
-				with priceLock:
-					self.price-=1
+
+				with fLock:
+					self.f-=1
 				
 			elif message=='Give':
 				print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
@@ -279,14 +286,14 @@ class Market(Process):
 
 
 	def updatePrice(self):
-		while 1:
-			with priceLock:
-				self.price=int(self.price-(temperature.value/10-sunny.value)/10)			#If it's hot and sunny then energy is cheap and if it's dark and cold it's expensive.
-				self.priceSeries=self.priceSeries.append(pd.Series([self.price], index=[self.day]))
-				if self.price<10:
-					self.price=10
-				print("Market: Updated the price. It is now {}.".format(self.price))
-			sleep(5)
+		with priceLock:
+			self.price=int(self.gamma*self.price+self.alpha*self.f)
+			self.priceSeries=self.priceSeries.append(pd.Series([self.price], index=[self.day]))
+			with fLock:
+				self.f=0
+			if self.price<100:
+				self.price=100
+			print("Market: Updated the price. It is now {}.".format(self.price))
 
 
 	def sendMessage(self, homeNumber, message):
@@ -411,9 +418,10 @@ if __name__=="__main__":
 
 
 	priceLock = Lock()
+	fLock=Lock()
 
 
-	market=Market(3)
+	market=Market(4)
 	market.start()
 	
 
@@ -421,16 +429,16 @@ if __name__=="__main__":
 	home1.start()
 
 
-	home2=Home(10, 12, True)
+	home2=Home(11, 7, True)
 	home2.start()
 
 
-	home3=Home(9, 4, False)
+	home3=Home(8, 9, True)
 	home3.start()
 
 
-	# home4=Home(9, 2, True)
-	# home4.start()
+	home4=Home(5, 9, False)
+	home4.start()
 
 
 	# home5=Home(5, 0, True)
