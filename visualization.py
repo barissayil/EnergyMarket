@@ -25,7 +25,7 @@ class Home(Process):
 	def __init__(self, consumptionRate, productionRate, isGenerous):
 		super().__init__()
 		Home.numberOfHomes+=1
-		self.budget=100000
+		self.budget=10000000
 		self.consumptionRate=consumptionRate
 		self.productionRate=productionRate
 		self.day=1
@@ -159,10 +159,10 @@ class Market(Process):
 		self.priceLock = Lock()
 		self.fLock=Lock()
 		self.aliveHomes=[True]*numberOfHomes
-		self.price=200
-		self.gamma=1  # long-term attenuation coefficient for
+		self.price=20000
+		self.gamma=.999999  # long-term attenuation coefficient for
 		self.f=0		# internal factor (amount bought-amount sold)
-		self.alpha=0	# modulating coefficient for factor for internal factors
+		self.alpha=5	# modulating coefficient for factor for internal factors
 		self.freeEnergy=0
 		self.freeEnergyLimit=10
 		self.day=1
@@ -196,6 +196,18 @@ class Market(Process):
   # 			pass
 
 
+	def updatePrice(self):
+		with self.priceLock:
+			self.price=int(self.gamma*self.price+self.alpha*self.f)
+			self.priceSeries=self.priceSeries.append(pd.Series([self.price], index=[self.day]))
+			with self.fLock:
+				self.f=0
+			if self.price<100:
+				self.price=100
+			print("Market: Updated the price. It is now {}.".format(self.price))
+
+
+
 	def showPriceGraph(self):
 		self.priceSeries.plot(colormap='autumn')
 		plt.xlabel('Day')
@@ -206,12 +218,12 @@ class Market(Process):
 	def handleSignals(self, sig, frame):
 		if sig == SIGUSR1:
 			with self.priceLock:
-				self.price+=50
-				print("Market: Signal from External received. Macron has increased the tax on energy! The price is increased by 50. The energy now costs {} euros per unit.".format(self.price))
+				self.price+=5000
+				print("Market: Signal from External received. Macron has increased the tax on energy! The price is increased by 5000. The energy now costs {} euros per unit.".format(self.price))
 		elif sig == SIGUSR2:
 			with self.priceLock:
-				self.price-=100
-				print("Market: Signal from External received. INSA students found a way to perform efficient nuclear fusion! The price is decreased by 100. The energy now costs {} euros per unit.".format(self.price))
+				self.price-=10000
+				print("Market: Signal from External received. INSA students found a way to perform efficient nuclear fusion! The price is decreased by 10000. The energy now costs {} euros per unit.".format(self.price))
 
 
 
@@ -306,17 +318,6 @@ class Market(Process):
 				self.goToNextDay()
 
 			
-
-
-	def updatePrice(self):
-		with self.priceLock:
-			self.price=int(self.gamma*self.price+self.alpha*self.f)
-			self.priceSeries=self.priceSeries.append(pd.Series([self.price], index=[self.day]))
-			with self.fLock:
-				self.f=0
-			if self.price<100:
-				self.price=100
-			print("Market: Updated the price. It is now {}.".format(self.price))
 
 
 	def sendMessage(self, homeNumber, message):
