@@ -3,8 +3,13 @@ It simulates a simple energy market using concurrent execution features of Pytho
 
 
 
-Now we have: HOME -- message queue -- HOME -- message queue -- MARKET -- shared memory -- WEATHER
+Now we have: HOME <-- message queue --> MARKET <-- shared memory -- WEATHER
+                                           ^
+                                           |
+                                        signal
+                                           |
+                                       External
+                                       
+                                       
+                                       
 
-
-
-We will add: MARKET -- signal -- EXTERNAL
