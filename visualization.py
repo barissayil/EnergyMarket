@@ -1,11 +1,13 @@
-from multiprocessing import Process, Value, Lock, Array
+from multiprocessing import Process, Value, Lock
 from sysv_ipc import MessageQueue, IPC_CREAT
 import random
 from time import sleep
 import datetime
 from concurrent.futures import ThreadPoolExecutor
-from threading import Thread, Semaphore
+from threading import Thread
 from sys import exit
+from os import getpid, getppid, kill
+from signal import signal, SIGUSR1, SIGUSR2
 
 import pandas as pd
 import numpy as np
@@ -13,7 +15,6 @@ import matplotlib.pyplot as plt
 
 
 #Important: When the graphs appear close them and then press CTRL+Z on the terminal to safely close the program.
-
 
 
 
@@ -25,7 +26,6 @@ class Home(Process):
 		super().__init__()
 		Home.numberOfHomes+=1
 		self.budget=100000
-		self.budgetSeries=pd.Series()
 		self.consumptionRate=consumptionRate
 		self.productionRate=productionRate
 		self.day=1
@@ -33,7 +33,7 @@ class Home(Process):
 		self.homeNumber=Home.numberOfHomes
 		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
 		self.isGenerous=isGenerous
-		print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
+		self.budgetSeries=pd.Series()
 		
 
 	def run(self):
@@ -51,6 +51,7 @@ class Home(Process):
 			self.finishCurrentDay()
 			self.waitForNextDay()
 			self.day+=1
+			# sleep(1)
 
 
 	def showBudgetGraph(self):
@@ -88,14 +89,14 @@ class Home(Process):
 		amount=abs(self.energy)
 		message= str(self.homeNumber) + " " + str(amount) + " " + message
 		MessageQueue(100).send(str(message).encode())
-		print("Home{} sent: {}".format(self.homeNumber,message))
+		# print("Home{} sent: {}".format(self.homeNumber,message))
 		
 
 	def receiveMessage(self):
 
 		x, t = self.messageQueue.receive()
 		message = x.decode()
-		print("Home{} recieved: {}".format(self.homeNumber, message))
+		# print("Home{} recieved: {}".format(self.homeNumber, message))
 		return message
 
 
@@ -155,21 +156,33 @@ class Market(Process):
 		self.numberOfHomes=numberOfHomes
 		self.numberOfHomeThatAreDone=0
 		self.numberOfHomeThatAreDoneLock=Lock()
+		self.priceLock = Lock()
+		self.fLock=Lock()
 		self.aliveHomes=[True]*numberOfHomes
 		self.price=200
-		self.priceSeries=pd.Series()
-		self.gamma=1 	# long-term attenuation coefficient for
-		self.f=0			# internal factor (amount bought-amount sold)
-		self.alpha=0		# modulating coefficient for factor for internal factors
+		self.gamma=1  # long-term attenuation coefficient for
+		self.f=0		# internal factor (amount bought-amount sold)
+		self.alpha=0	# modulating coefficient for factor for internal factors
 		self.freeEnergy=0
 		self.freeEnergyLimit=10
 		self.day=1
 		self.messageQueue=MessageQueue(100,IPC_CREAT)
-		print("Market: My messageQueue is {}",format(self.messageQueue))
+		# print("Market: My messageQueue is {}",format(self.messageQueue))
+		self.priceSeries=pd.Series()
 
 
 
 	def run(self):
+
+		
+
+		# print('Market: My PID is {}.'.format(getpid()))
+
+		signal(SIGUSR1, self.handleSignals)
+		signal(SIGUSR2, self.handleSignals)
+
+		external=External()
+		external.start()
 
 		
 
@@ -179,6 +192,9 @@ class Market(Process):
 		self.showPriceGraph()
 
 
+		# while True:
+  # 			pass
+
 
 	def showPriceGraph(self):
 		self.priceSeries.plot(colormap='autumn')
@@ -186,11 +202,22 @@ class Market(Process):
 		plt.ylabel('Price of Energy')
 		plt.show()
 
+		
+	def handleSignals(self, sig, frame):
+		if sig == SIGUSR1:
+			with self.priceLock:
+				self.price+=50
+				print("Market: Signal from External received. Macron has increased the tax on energy! The price is increased by 50. The energy now costs {} euros per unit.".format(self.price))
+		elif sig == SIGUSR2:
+			with self.priceLock:
+				self.price-=100
+				print("Market: Signal from External received. INSA students found a way to perform efficient nuclear fusion! The price is decreased by 100. The energy now costs {} euros per unit.".format(self.price))
+
 
 
 	def goToNextDay(self):
 
-		print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
+		# print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
 
 		if self.numberOfHomeThatAreDone==self.numberOfHomes:
 			self.numberOfHomeThatAreDone=0
@@ -231,22 +258,24 @@ class Market(Process):
 				self.goToNextDay()
 
 			elif message=='Buy':
-				with priceLock:
+				with self.priceLock:
 					print('Market: The price of energy is {} dollars.'.format(self.price))
 					self.sendMessage(homeNumber, self.price)
 				print('Market: Demand is up, increasing the price.')
 
-				with fLock:
+
+				with self.fLock:
 					self.f+=1
 
 
 			elif message=='Sell':
-				with priceLock:
+				with self.priceLock:
 					print('Market: The price of energy is {} dollars.'.format(self.price))
 					self.sendMessage(homeNumber, self.price)
 				print('Market: Supply is up, decreasing the price.')
 
-				with fLock:
+
+				with self.fLock:
 					self.f-=1
 				
 			elif message=='Give':
@@ -274,22 +303,16 @@ class Market(Process):
 				print('Market: Home{} is done.'.format(homeNumber))
 				with self.numberOfHomeThatAreDoneLock:
 					self.numberOfHomeThatAreDone+=1
-					print(self.numberOfHomeThatAreDone)
 				self.goToNextDay()
 
 			
 
 
-
-
-
-
-
 	def updatePrice(self):
-		with priceLock:
+		with self.priceLock:
 			self.price=int(self.gamma*self.price+self.alpha*self.f)
 			self.priceSeries=self.priceSeries.append(pd.Series([self.price], index=[self.day]))
-			with fLock:
+			with self.fLock:
 				self.f=0
 			if self.price<100:
 				self.price=100
@@ -299,16 +322,36 @@ class Market(Process):
 	def sendMessage(self, homeNumber, message):
 
 		MessageQueue(homeNumber).send(str(message).encode())
-		print("Market sent: {}".format(message))
+		# print("Market sent: {}".format(message))
 
 
 	def receiveMessage(self):
 
 		x, t = self.messageQueue.receive()
 		message = x.decode()
-		print("Market recieved: {}".format(message))
+		# print("Market recieved: {}".format(message))
 		return message
 
+
+
+class External(Process):
+
+	def __init__(self):
+		super().__init__()
+
+
+	def run(self):
+		marketPID=getppid()
+		# print("External: Market's PID is {}.".format(marketPID))
+
+		sleep(.1)
+		kill(marketPID,SIGUSR1)
+
+		sleep(.2)
+		kill(marketPID,SIGUSR2)
+
+		sleep(.1)
+		kill(marketPID,SIGUSR1)
 
 
 
@@ -417,10 +460,6 @@ if __name__=="__main__":
 
 
 
-	priceLock = Lock()
-	fLock=Lock()
-
-
 	market=Market(4)
 	market.start()
 	
@@ -429,15 +468,15 @@ if __name__=="__main__":
 	home1.start()
 
 
-	home2=Home(11, 7, True)
+	home2=Home(11, 10, True)
 	home2.start()
 
 
-	home3=Home(8, 9, True)
+	home3=Home(9, 9, False)
 	home3.start()
 
 
-	home4=Home(5, 9, False)
+	home4=Home(9, 2, True)
 	home4.start()
 
 
