@@ -28,7 +28,7 @@ class Home(Process):
 		self.homeNumber=Home.numberOfHomes
 		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
 		self.isGenerous=isGenerous
-		print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
+		# print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
 		
 
 	def run(self):
@@ -73,14 +73,14 @@ class Home(Process):
 		amount=abs(self.energy)
 		message= str(self.homeNumber) + " " + str(amount) + " " + message
 		MessageQueue(100).send(str(message).encode())
-		print("Home{} sent: {}".format(self.homeNumber,message))
+		# print("Home{} sent: {}".format(self.homeNumber,message))
 		
 
 	def receiveMessage(self):
 
 		x, t = self.messageQueue.receive()
 		message = x.decode()
-		print("Home{} recieved: {}".format(self.homeNumber, message))
+		# print("Home{} recieved: {}".format(self.homeNumber, message))
 		return message
 
 
@@ -140,6 +140,8 @@ class Market(Process):
 		self.numberOfHomes=numberOfHomes
 		self.numberOfHomeThatAreDone=0
 		self.numberOfHomeThatAreDoneLock=Lock()
+		self.priceLock = Lock()
+		self.fLock=Lock()
 		self.aliveHomes=[True]*numberOfHomes
 		self.price=200
 		self.gamma=1  # long-term attenuation coefficient for
@@ -149,7 +151,7 @@ class Market(Process):
 		self.freeEnergyLimit=10
 		self.day=1
 		self.messageQueue=MessageQueue(100,IPC_CREAT)
-		print("Market: My messageQueue is {}",format(self.messageQueue))
+		# print("Market: My messageQueue is {}",format(self.messageQueue))
 
 
 
@@ -157,7 +159,7 @@ class Market(Process):
 
 		
 
-		print('Market: My PID is {}.'.format(getpid()))
+		# print('Market: My PID is {}.'.format(getpid()))
 
 		signal(SIGUSR1, self.handleSignals)
 		signal(SIGUSR2, self.handleSignals)
@@ -175,11 +177,11 @@ class Market(Process):
 		
 	def handleSignals(self, sig, frame):
 		if sig == SIGUSR1:
-			with priceLock:
+			with self.priceLock:
 				self.price+=50
 				print("Market: Signal from External received. Macron has increased the tax on energy! The price is increased by 50. The energy now costs {} euros per unit.".format(self.price))
 		elif sig == SIGUSR2:
-			with priceLock:
+			with self.priceLock:
 				self.price-=100
 				print("Market: Signal from External received. INSA students found a way to perform efficient nuclear fusion! The price is decreased by 100. The energy now costs {} euros per unit.".format(self.price))
 
@@ -187,7 +189,7 @@ class Market(Process):
 
 	def goToNextDay(self):
 
-		print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
+		# print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
 
 		if self.numberOfHomeThatAreDone==self.numberOfHomes:
 			self.numberOfHomeThatAreDone=0
@@ -228,24 +230,24 @@ class Market(Process):
 				self.goToNextDay()
 
 			elif message=='Buy':
-				with priceLock:
+				with self.priceLock:
 					print('Market: The price of energy is {} dollars.'.format(self.price))
 					self.sendMessage(homeNumber, self.price)
 				print('Market: Demand is up, increasing the price.')
 
 
-				with fLock:
+				with self.fLock:
 					self.f+=1
 
 
 			elif message=='Sell':
-				with priceLock:
+				with self.priceLock:
 					print('Market: The price of energy is {} dollars.'.format(self.price))
 					self.sendMessage(homeNumber, self.price)
 				print('Market: Supply is up, decreasing the price.')
 
 
-				with fLock:
+				with self.fLock:
 					self.f-=1
 				
 			elif message=='Give':
@@ -279,9 +281,9 @@ class Market(Process):
 
 
 	def updatePrice(self):
-		with priceLock:
+		with self.priceLock:
 			self.price=int(self.gamma*self.price+self.alpha*self.f)
-			with fLock:
+			with self.fLock:
 				self.f=0
 			if self.price<100:
 				self.price=100
@@ -291,14 +293,14 @@ class Market(Process):
 	def sendMessage(self, homeNumber, message):
 
 		MessageQueue(homeNumber).send(str(message).encode())
-		print("Market sent: {}".format(message))
+		# print("Market sent: {}".format(message))
 
 
 	def receiveMessage(self):
 
 		x, t = self.messageQueue.receive()
 		message = x.decode()
-		print("Market recieved: {}".format(message))
+		# print("Market recieved: {}".format(message))
 		return message
 
 
@@ -311,9 +313,11 @@ class External(Process):
 
 	def run(self):
 		marketPID=getppid()
-		print("External: Market's PID is {}.".format(marketPID))
+		# print("External: Market's PID is {}.".format(marketPID))
+
 		sleep(3)
 		kill(marketPID,SIGUSR1)
+
 		sleep(5)
 		kill(marketPID,SIGUSR2)
 
@@ -422,10 +426,6 @@ if __name__=="__main__":
 	# weather.start()
 
 
-
-
-	priceLock = Lock()
-	fLock=Lock()
 
 
 	market=Market(4)
