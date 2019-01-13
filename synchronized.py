@@ -140,9 +140,9 @@ class Market(Process):
 		self.numberOfHomeThatAreDoneLock=Lock()
 		self.aliveHomes=[True]*numberOfHomes
 		self.price=200
-		self.gamma=.98  # long-term attenuation coefficient for
+		self.gamma=1  # long-term attenuation coefficient for
 		self.f=0		# internal factor (amount bought-amount sold)
-		self.alpha=1	# modulating coefficient for factor for internal factors
+		self.alpha=0	# modulating coefficient for factor for internal factors
 		self.freeEnergy=0
 		self.freeEnergyLimit=10
 		self.day=1
@@ -206,8 +206,7 @@ class Market(Process):
 					print('Market: The price of energy is {} dollars.'.format(self.price))
 					self.sendMessage(homeNumber, self.price)
 				print('Market: Demand is up, increasing the price.')
-				with priceLock:
-					self.price+=5
+
 
 				with fLock:
 					self.f+=1
@@ -218,8 +217,7 @@ class Market(Process):
 					print('Market: The price of energy is {} dollars.'.format(self.price))
 					self.sendMessage(homeNumber, self.price)
 				print('Market: Supply is up, decreasing the price.')
-				with priceLock:
-					self.price-=1
+
 
 				with fLock:
 					self.f-=1
@@ -403,7 +401,7 @@ if __name__=="__main__":
 	home1.start()
 
 
-	home2=Home(5, 10, True)
+	home2=Home(11, 10, True)
 	home2.start()
 
 
