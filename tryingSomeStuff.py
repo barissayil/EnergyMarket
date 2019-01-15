@@ -155,6 +155,17 @@ class Market(Process):
 			self.receiveMessage()
 			self.receiveMessage()
 
+
+			# Send msg to everyone so Always Give Homes Give
+			for i in range(Home.numberOfHomes):
+				self.sendMessage(i,"Donations")
+			# Wait for everyones response
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+			self.receiveMessage()
+
+
 			# Send msg to everyone so they can take the energy they need
 			for i in range(Home.numberOfHomes):
 				self.sendMessage(i,"Demands")
@@ -163,9 +174,11 @@ class Market(Process):
 			self.receiveMessage()
 			self.receiveMessage()
 			self.receiveMessage()
+
+			#Market sends the free energy needed is there is
 			# Send msg to everyone so they give energy if they can
 			for i in range(Home.numberOfHomes):
-				self.sendMessage(i,"Donations")
+				self.sendMessage(i,"Donations"+ammount)
 			# Wait for everyones response
 			self.receiveMessage()
 			self.receiveMessage()

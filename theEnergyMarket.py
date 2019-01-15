@@ -26,7 +26,7 @@ class Home(Process):
 		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
 		self.isGenerous=isGenerous
 		print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
-		
+
 
 	def run(self):
 
@@ -40,9 +40,9 @@ class Home(Process):
 				break
 			sleep(5)
 
-			
+
 	def decideWhatToDo(self):
-		
+
 		if self.energy<0:
 			self.getEnergy()
 			if self.energy<0:
@@ -60,7 +60,7 @@ class Home(Process):
 		message= str(self.homeNumber) + " " + str(amount) + " " + message
 		MessageQueue(100).send(str(message).encode())
 		print("Home{} sent: {}".format(self.homeNumber,message))
-		
+
 
 	def receiveMessage(self):
 
@@ -133,7 +133,7 @@ class Market(Process):
 
 	def run(self):
 
-		
+
 		Thread(target=self.updatePrice).start()
 
 
@@ -141,7 +141,7 @@ class Market(Process):
 			executor.submit(self.handleMessages)
 
 
-			
+
 
 
 	def handleMessages(self):
@@ -186,7 +186,7 @@ class Market(Process):
 					self.sendMessage(homeNumber, amount)
 
 				print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
-				
+
 
 
 			elif message=='Get':
@@ -232,7 +232,7 @@ class Market(Process):
 class Weather(Process):
 	def __init__(self):
 		super().__init__()
-		
+
 
 	def run(self):
 		while 1:
@@ -264,7 +264,7 @@ class Weather(Process):
 				temperature.value=4
 
 
-			
+
 			#...
 			#...
 			#Do something similar with hour.
@@ -299,19 +299,19 @@ def clean():									#To clean the message queues.
 	clear.remove()
 
 	clear=MessageQueue(1,IPC_CREAT)
-	clear.remove()							
+	clear.remove()
 
 	clear=MessageQueue(2,IPC_CREAT)
-	clear.remove()	
+	clear.remove()
 
 	clear=MessageQueue(3,IPC_CREAT)
-	clear.remove()	
+	clear.remove()
 
 	clear=MessageQueue(4,IPC_CREAT)
-	clear.remove()	
+	clear.remove()
 
 	clear=MessageQueue(5,IPC_CREAT)
-	clear.remove()	
+	clear.remove()
 
 
 if __name__=="__main__":
@@ -337,7 +337,7 @@ if __name__=="__main__":
 
 	market=Market()
 	market.start()
-	
+
 
 	home1=Home(10, 0, True)
 	home1.start()
