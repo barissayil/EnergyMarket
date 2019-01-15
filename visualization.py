@@ -9,7 +9,12 @@ from sys import exit
 from os import getpid, getppid, kill
 from signal import signal, SIGUSR1, SIGUSR2
 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
+
+#Important: When the graphs appear close them and then press CTRL+Z on the terminal to safely close the program.
 
 
 
@@ -28,23 +33,34 @@ class Home(Process):
 		self.homeNumber=Home.numberOfHomes
 		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
 		self.isGenerous=isGenerous
-		# print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
+		self.budgetSeries=pd.Series()
 		
 
 	def run(self):
 
 		while 1:
 			print("Home {}: It is day {}. My budget is {} dollars.".format(self.homeNumber, self.day, self.budget))
+			self.budgetSeries=self.budgetSeries.append(pd.Series([self.budget], index=[self.day]))
 			self.energy=self.productionRate-self.consumptionRate
 			self.decideWhatToDo()
 			if self.budget<0:
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
 				self.sendMessage('Broke')
+				self.showBudgetGraph()
 				break
 			self.finishCurrentDay()
 			self.waitForNextDay()
 			self.day+=1
-			sleep(1)
+			# sleep(1)
+
+
+	def showBudgetGraph(self):
+
+		self.budgetSeries.plot()
+		plt.xlabel('Day')
+		plt.ylabel("Home{}'s Budget".format(self.homeNumber))
+		plt.show()
+
 
 
 	def finishCurrentDay(self):
@@ -152,6 +168,7 @@ class Market(Process):
 		self.day=1
 		self.messageQueue=MessageQueue(100,IPC_CREAT)
 		# print("Market: My messageQueue is {}",format(self.messageQueue))
+		self.priceSeries=pd.Series()
 
 
 
@@ -171,6 +188,10 @@ class Market(Process):
 
 		Thread(target=self.handleMessages).start()
 
+		sleep(3)
+		self.showPriceGraph()
+
+
 		# while True:
   # 			pass
 
@@ -178,11 +199,20 @@ class Market(Process):
 	def updatePrice(self):
 		with self.priceLock:
 			self.price=int(self.gamma*self.price+self.alpha*self.f)
+			self.priceSeries=self.priceSeries.append(pd.Series([self.price], index=[self.day]))
 			with self.fLock:
 				self.f=0
 			if self.price<100:
 				self.price=100
 			print("Market: Updated the price. It is now {}.".format(self.price))
+
+
+
+	def showPriceGraph(self):
+		self.priceSeries.plot(colormap='autumn')
+		plt.xlabel('Day')
+		plt.ylabel('Price of Energy')
+		plt.show()
 
 		
 	def handleSignals(self, sig, frame):
@@ -290,9 +320,6 @@ class Market(Process):
 			
 
 
-
-
-
 	def sendMessage(self, homeNumber, message):
 
 		MessageQueue(homeNumber).send(str(message).encode())
@@ -318,11 +345,14 @@ class External(Process):
 		marketPID=getppid()
 		# print("External: Market's PID is {}.".format(marketPID))
 
-		sleep(3)
+		sleep(.1)
 		kill(marketPID,SIGUSR1)
 
-		sleep(5)
+		sleep(.2)
 		kill(marketPID,SIGUSR2)
+
+		sleep(.1)
+		kill(marketPID,SIGUSR1)
 
 
 
