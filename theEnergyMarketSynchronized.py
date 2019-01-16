@@ -1,7 +1,7 @@
 from multiprocessing import Process, Value, Lock
 from sysv_ipc import MessageQueue, IPC_CREAT
 from random import randint
-# from time import sleep
+from time import sleep
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
@@ -172,7 +172,6 @@ class Market(Process):
 		while 1:
 			self.startTheDay()
 			self.goToNextDay()
-			sleep(1)
 
 
 
@@ -272,7 +271,6 @@ class Market(Process):
 
 			if self.numberOfHomes==0:
 				self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
-				self.goToNextDay()
 
 		elif message=='Buy':
 			with self.priceLock:
@@ -357,7 +355,7 @@ class External(Process):
 
 		while 1:
 			print('External: It is day {}.'.format(self.day))
-			self.determineTheExternalFactors()
+			# self.determineTheExternalFactors()
 			MessageQueue(102).send('Done'.encode())
 			MessageQueue(300).receive()
 			self.day+=1
@@ -449,11 +447,12 @@ if __name__=="__main__":
 
 	weather=Weather()
 
-	market=Market(2)
+	market=Market(4)
 
 	home1=Home(10, 0, True)
 	home2=Home(11, 10, True)
 	home3=Home(10, 9, False)
+	home4=Home(9, 2, True)
 
 
 
@@ -467,11 +466,4 @@ if __name__=="__main__":
 	home1.start()
 	home2.start()
 	home3.start()
-
-
-	# home4=Home(9, 2, True)
-	# home4.start()
-
-
-	# home5=Home(5, 0, True)
-	# home5.start()
+	home4.start()
