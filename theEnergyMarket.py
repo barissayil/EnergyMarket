@@ -44,7 +44,7 @@ class Home(Process):
 			self.finishCurrentDay()
 			self.waitForNextDay()
 			self.day+=1
-			sleep(1)
+			# sleep(1)
 
 
 	def finishCurrentDay(self):
@@ -443,7 +443,7 @@ if __name__=="__main__":
 	home2.start()
 
 
-	home3=Home(9, 9, False)
+	home3=Home(10, 9, False)
 	home3.start()
 
 
