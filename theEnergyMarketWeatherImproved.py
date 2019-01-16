@@ -335,8 +335,8 @@ class Weather(Process):
         self.mq=MessageQueue(200)
         self.shared_temp=shared_temp
         self.shared_sun=shared_sun
-        self.tab_temp=[24,22,14,8,4,3,7,11,12,2,20,30,40]
-        self.tab_sun=[90,70,50,30,20,20,40,50,70,90,95,95]
+        self.tab_temp=[3,7,11,12,20,30,40,24,22,14,8,4]
+        self.tab_sun=[30,20,20,40,50,70,90,95,95,90,70,50]
         self.incertitude_range=2
         self.month=1
         self.day=1
