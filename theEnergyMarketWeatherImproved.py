@@ -312,12 +312,18 @@ class External(Process):
 
 	def __init__(self):
 		super().__init__()
-
-
+		self.daysWithoutEvents=0
+		self.eventFrequence=20 # 20%
+		self.eventHasOccurred
+	def eventSimulation(self):
+		while badEventHasOccurred == 0:
+			probaOfEvent = randint(0,eventFrequence)
+			if probaOfEvent <= eventFrequence :
 
 	def run(self):
+
 		marketPID=getppid()
-		# print("External: Market's PID is {}.".format(marketPID))
+
 
 		sleep(3)
 		kill(marketPID,SIGUSR1)
@@ -345,6 +351,7 @@ class Weather(Process):
 
 	def sunAndTemperatureSimulation(self):
         # every day
+		# get the day
         today_temp = self.tab_temp[self.month] + randrange(-self.incertitude_range,self.incertitude_range,0,25)
         self.shared_temp.value(today_temp)
         proba = randint(0,self.tab_sun[self.month])

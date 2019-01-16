@@ -29,7 +29,7 @@ class Home(Process):
 		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
 		self.isGenerous=isGenerous
 		# print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
-		
+
 
 	def run(self):
 
@@ -49,13 +49,13 @@ class Home(Process):
 	def finishCurrentDay(self):
 		self.sendMessage('Done')
 
-			
+
 	def waitForNextDay(self):
 		message=self.receiveMessage()
 
 
 	def decideWhatToDo(self):
-		
+
 		if self.energy<0:
 			self.getEnergy()
 			if self.energy<0:
@@ -73,7 +73,7 @@ class Home(Process):
 		message= str(self.homeNumber) + " " + str(amount) + " " + message
 		MessageQueue(100).send(str(message).encode())
 		# print("Home{} sent: {}".format(self.homeNumber,message))
-		
+
 
 	def receiveMessage(self):
 
@@ -172,6 +172,7 @@ class Market(Process):
 		while 1:
 			self.startTheDay()
 			self.goToNextDay()
+			sleep(1)
 
 
 
@@ -183,7 +184,7 @@ class Market(Process):
 		self.dayHasStarted=True
 
 
-		
+
 	def waitForWeather(self):
 		print('Market: Waiting for weather.')
 		MessageQueue(101).receive()
@@ -204,7 +205,7 @@ class Market(Process):
 				self.price=100
 			print("Market: Updated the price. It is now {}.".format(self.price))
 
-		
+
 	def handleSignals(self, sig, frame):
 		if sig == SIGUSR1:
 			with self.priceLock:
@@ -230,7 +231,7 @@ class Market(Process):
 		self.day+=1
 		print('\n\nMarket: IT IS DAY {}!'.format(self.day))
 		self.updatePrice()
-		for i in range (1,len(self.aliveHomes)+1):						
+		for i in range (1,len(self.aliveHomes)+1):
 			if self.aliveHomes[i-1]:
 				self.sendMessage(i,'Go')
 
@@ -252,11 +253,11 @@ class Market(Process):
 	def handleMessage(self, message):
 
 		while not self.dayHasStarted:
-			pass 
+			pass
 
 
 		print('Market: Handling the message "{}".'.format(message))
-			
+
 		message=message.split()
 		homeNumber=int(message[0])
 		amount=int(message[1])
@@ -271,7 +272,7 @@ class Market(Process):
 
 			if self.numberOfHomes==0:
 				self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
-			self.goToNextDay()
+				self.goToNextDay()
 
 		elif message=='Buy':
 			with self.priceLock:
@@ -293,7 +294,7 @@ class Market(Process):
 
 			with self.fLock:
 				self.f-=1
-			
+
 		elif message=='Give':
 			print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
 			if self.freeEnergy>=self.freeEnergyLimit:
@@ -303,7 +304,7 @@ class Market(Process):
 				self.freeEnergy+=amount
 				self.sendMessage(homeNumber, amount)
 			print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
-			
+
 		elif message=='Get':
 			print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
 			if self.freeEnergy>=amount:
@@ -320,7 +321,7 @@ class Market(Process):
 			with self.numberOfHomeThatAreDoneLock:
 				self.numberOfHomeThatAreDone+=1
 
-			
+
 
 
 
@@ -379,7 +380,7 @@ class Weather(Process):
 		super().__init__()
 		MessageQueue(200,IPC_CREAT)
 		self.day=1
-		
+
 
 	def run(self):
 		while 1:
@@ -407,19 +408,19 @@ def clean():									#To clean the message queues.
 	clear.remove()
 
 	clear=MessageQueue(1,IPC_CREAT)
-	clear.remove()							
+	clear.remove()
 
 	clear=MessageQueue(2,IPC_CREAT)
-	clear.remove()	
+	clear.remove()
 
 	clear=MessageQueue(3,IPC_CREAT)
-	clear.remove()	
+	clear.remove()
 
 	clear=MessageQueue(4,IPC_CREAT)
-	clear.remove()	
+	clear.remove()
 
 	clear=MessageQueue(5,IPC_CREAT)
-	clear.remove()	
+	clear.remove()
 
 	clear=MessageQueue(101,IPC_CREAT)
 	clear.remove()
@@ -452,7 +453,7 @@ if __name__=="__main__":
 
 	home1=Home(10, 0, True)
 	home2=Home(11, 10, True)
-
+	home3=Home(10, 9, False)
 
 
 
@@ -462,13 +463,10 @@ if __name__=="__main__":
 	weather.start()
 
 	market.start()
-	
+
 	home1.start()
 	home2.start()
-
-
-	# home3=Home(10, 9, False)
-	# home3.start()
+	home3.start()
 
 
 	# home4=Home(9, 2, True)
