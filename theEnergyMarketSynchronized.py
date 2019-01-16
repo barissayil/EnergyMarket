@@ -20,7 +20,7 @@ class Home(Process):
 	def __init__(self, consumptionRate, productionRate, isGenerous):
 		super().__init__()
 		Home.numberOfHomes+=1
-		self.budget=10000000
+		self.budget=1000000
 		self.consumptionRate=consumptionRate
 		self.productionRate=productionRate
 		self.day=1
@@ -346,24 +346,29 @@ class External(Process):
 	def __init__(self):
 		super().__init__()
 		MessageQueue(300,IPC_CREAT)
+		self.day=1
 
 
 	def run(self):
-		marketPID=getppid()
+		self.marketPID=getppid()
 		# print("External: Market's PID is {}.".format(marketPID))
-
-		# sleep(3)
-		# kill(marketPID,SIGUSR1)
-
-		# sleep(5)
-		# kill(marketPID,SIGUSR2)
 
 
 		while 1:
+			self.determineTheExternalFactors()
 			MessageQueue(102).send('Done'.encode())
 			MessageQueue(300).receive()
 
 
+	def determineTheExternalFactors(self):
+
+		if randint(1,100)<=10:
+			kill(self.marketPID,SIGUSR1)
+			print('External: Macron!')
+
+		if randint(1,100)<=5:
+			kill(self.marketPID,SIGUSR2)
+			print('External: Fusion!')
 
 
 
@@ -439,7 +444,7 @@ if __name__=="__main__":
 	market=Market(2)
 
 	home1=Home(10, 0, True)
-	home2=Home(1, 10, True)
+	home2=Home(11, 10, True)
 
 
 
