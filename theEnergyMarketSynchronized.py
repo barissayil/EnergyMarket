@@ -229,12 +229,12 @@ class Market(Process):
 
 	def goToNextDay(self):
 
-		print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
+		# print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
 
 		while self.numberOfHomeThatAreDone!=self.numberOfHomes:
 			pass
 
-		print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
+		# print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
 
 		self.numberOfHomeThatAreDone=0
 		self.day+=1
@@ -262,12 +262,12 @@ class Market(Process):
 
 	def handleMessage(self, message):
 
-		print(self.dayHasStarted)
+		# print(self.dayHasStarted)
 
 		while not self.dayHasStarted:
 			pass 
 
-		print(self.dayHasStarted)
+		# print(self.dayHasStarted)
 
 		print('Market: Handling the message "{}".'.format(message))
 			
@@ -380,7 +380,7 @@ class External(Process):
 
 	def determineTheExternalFactors(self):
 
-		if randint(1,100)<=90:
+		if randint(1,100)<=10:
 			kill(self.marketPID,SIGUSR1)
 			print('External: Macron!')
 
@@ -465,12 +465,12 @@ if __name__=="__main__":
 
 	weather=Weather()
 
-	market=Market(3)
+	market=Market(4)
 
 	home1=Home(10, 0, True)
-	home2=Home(11, 5, True)
+	home2=Home(11, 7, True)
 	home3=Home(10, 3, False)
-	# home4=Home(9, 2, True)
+	home4=Home(9, 2, True)
 
 
 
@@ -484,4 +484,4 @@ if __name__=="__main__":
 	home1.start()
 	home2.start()
 	home3.start()
-	# home4.start()
+	home4.start()
