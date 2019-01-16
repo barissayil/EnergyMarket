@@ -1,7 +1,7 @@
 from multiprocessing import Process, Value, Lock
 from sysv_ipc import MessageQueue, IPC_CREAT
 from random import randint
-from time import sleep
+# from time import sleep
 import datetime
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
@@ -355,9 +355,11 @@ class External(Process):
 
 
 		while 1:
+			print('External: It is day {}.'.format(self.day))
 			self.determineTheExternalFactors()
 			MessageQueue(102).send('Done'.encode())
 			MessageQueue(300).receive()
+			self.day+=1
 
 
 	def determineTheExternalFactors(self):
@@ -376,20 +378,25 @@ class Weather(Process):
 	def __init__(self):
 		super().__init__()
 		MessageQueue(200,IPC_CREAT)
+		self.day=1
 		
 
 	def run(self):
 		while 1:
+			print('Weather: It is day {}.'.format(self.day))
 
-
-			sunny.value=randint(0,2)					#50% sunny 50% cloudy
-			if sunny.value:
-				print("Weather: The temperature is {}°C and it is sunny.".format(temperature.value))
-			else:
-				print("Weather: The temperature is {}°C and it is cloudy.".format(temperature.value))
+			self.determineWeatherConditions()
 
 			MessageQueue(101).send('Done'.encode())
 			MessageQueue(200).receive()
+			self.day+=1
+
+	def determineWeatherConditions(self):
+		sunny.value=randint(0,2)					#50% sunny 50% cloudy
+		if sunny.value:
+			print("Weather: The temperature is {}°C and it is sunny.".format(temperature.value))
+		else:
+			print("Weather: The temperature is {}°C and it is cloudy.".format(temperature.value))
 
 
 
