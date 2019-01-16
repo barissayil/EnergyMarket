@@ -168,8 +168,12 @@ class Market(Process):
 		external.start()
 
 		
+		while 1:
 
-		Thread(target=self.handleMessages).start()
+
+			self.waitForMessage()
+
+
 
 		# while True:
   # 			pass
@@ -214,78 +218,81 @@ class Market(Process):
 
 
 
-	def handleMessages(self):
-		with ThreadPoolExecutor(max_workers=3) as executor:
-			executor.submit(self.waitForMessage)
-
-
 	def waitForMessage(self):
 
-		while 1:
-			message=self.receiveMessage()
-			message=message.split()
-			homeNumber=int(message[0])
-			amount=int(message[1])
-			message=message[2]
+		message=self.receiveMessage()
 
-			if message=='Broke':
-				print('Market: Oh no! Home{} went broke.'.format(homeNumber))
-				self.aliveHomes[homeNumber-1]=False
-				print(self.aliveHomes)
-				self.numberOfHomes-=1 #lock
-				print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
-
-				if self.numberOfHomes==0:
-					self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
-				self.goToNextDay()
-
-			elif message=='Buy':
-				with self.priceLock:
-					print('Market: The price of energy is {} dollars.'.format(self.price))
-					self.sendMessage(homeNumber, self.price)
-				print('Market: Demand is up, increasing the price.')
+		with ThreadPoolExecutor(max_workers=3) as executor:
+			executor.submit(self.handleMessages, message)
 
 
-				with self.fLock:
-					self.f+=1
+	def handleMessages(self, message):
 
 
-			elif message=='Sell':
-				with self.priceLock:
-					print('Market: The price of energy is {} dollars.'.format(self.price))
-					self.sendMessage(homeNumber, self.price)
-				print('Market: Supply is up, decreasing the price.')
+			
+		message=message.split()
+		homeNumber=int(message[0])
+		amount=int(message[1])
+		message=message[2]
+
+		if message=='Broke':
+			print('Market: Oh no! Home{} went broke.'.format(homeNumber))
+			self.aliveHomes[homeNumber-1]=False
+			print(self.aliveHomes)
+			self.numberOfHomes-=1 #lock
+			print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
+
+			if self.numberOfHomes==0:
+				self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
+			self.goToNextDay()
+
+		elif message=='Buy':
+			with self.priceLock:
+				print('Market: The price of energy is {} dollars.'.format(self.price))
+				self.sendMessage(homeNumber, self.price)
+			print('Market: Demand is up, increasing the price.')
 
 
-				with self.fLock:
-					self.f-=1
-				
-			elif message=='Give':
-				print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
-				if self.freeEnergy>=self.freeEnergyLimit:
-					print('Market: Woah slow down! I have way too much free energy.')
-					self.sendMessage(homeNumber, 0)
-				else:
-					self.freeEnergy+=amount
-					self.sendMessage(homeNumber, amount)
+			with self.fLock:
+				self.f+=1
+
+
+		elif message=='Sell':
+			with self.priceLock:
+				print('Market: The price of energy is {} dollars.'.format(self.price))
+				self.sendMessage(homeNumber, self.price)
+			print('Market: Supply is up, decreasing the price.')
+
+
+			with self.fLock:
+				self.f-=1
+			
+		elif message=='Give':
+			print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
+			if self.freeEnergy>=self.freeEnergyLimit:
+				print('Market: Woah slow down! I have way too much free energy.')
+				self.sendMessage(homeNumber, 0)
+			else:
+				self.freeEnergy+=amount
+				self.sendMessage(homeNumber, amount)
+			print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
+			
+		elif message=='Get':
+			print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
+			if self.freeEnergy>=amount:
+				self.sendMessage(homeNumber, amount)
+				self.freeEnergy-=amount
 				print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
-				
-			elif message=='Get':
-				print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
-				if self.freeEnergy>=amount:
-					self.sendMessage(homeNumber, amount)
-					self.freeEnergy-=amount
-					print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
-				else:
-					self.sendMessage(homeNumber, self.freeEnergy)
-					self.freeEnergy-=0
-					print('Market: Currently no free energy is available'.format(self.freeEnergy))
+			else:
+				self.sendMessage(homeNumber, self.freeEnergy)
+				self.freeEnergy-=0
+				print('Market: Currently no free energy is available'.format(self.freeEnergy))
 
-			elif message=='Done':
-				print('Market: Home{} is done.'.format(homeNumber))
-				with self.numberOfHomeThatAreDoneLock:
-					self.numberOfHomeThatAreDone+=1
-				self.goToNextDay()
+		elif message=='Done':
+			print('Market: Home{} is done.'.format(homeNumber))
+			with self.numberOfHomeThatAreDoneLock:
+				self.numberOfHomeThatAreDone+=1
+			self.goToNextDay()
 
 			
 
