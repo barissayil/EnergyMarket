@@ -404,10 +404,12 @@ class Weather(Process):
 
 	def determineWeatherConditions(self):
 
+		# Temperature ?
 		today_temp = self.tab_temp[self.month] + randrange(-self.incertitude_range,self.incertitude_range,0,25)
 		self.shared_temp.value(today_temp)
-		proba = randint(0,self.tab_sun[self.month])
 
+		# Is there somme sun ?
+		proba = randint(0,self.tab_sun[self.month])
 		if proba > self.tab_sun[self.month]:
 			self.shared_sun.value(0)
 		else:
