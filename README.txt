@@ -15,4 +15,5 @@ Now we have: HOME <-- message queue --> MARKET <-- shared memory -- WEATHER
 Stuff to add:
 Make Weather better.
 Make the temperature effect energy consumption of homes.
-Improve the visualization.
+Make sunny effect the energy production of homes.
+Show all the budgets of homes in one single graph with Market process.
