@@ -1,6 +1,6 @@
 from multiprocessing import Process, Value, Lock
 from sysv_ipc import MessageQueue, IPC_CREAT
-from random import randint
+from random import randint,randrange
 from time import sleep
 import datetime
 from concurrent.futures import ThreadPoolExecutor
@@ -11,315 +11,313 @@ from signal import signal, SIGUSR1, SIGUSR2
 
 
 
-
-
 class Home(Process):
 
-	numberOfHomes=0
+    numberOfHomes=0
 
-	def __init__(self, consumptionRate, productionRate, isGenerous):
-		super().__init__()
-		Home.numberOfHomes+=1
-		self.budget=1000000
-		self.consumptionRate=consumptionRate
-		self.productionRate=productionRate
-		self.day=1
-		self.energy=0
-		self.homeNumber=Home.numberOfHomes
-		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
-		self.isGenerous=isGenerous
-		# print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
-
-
-	def run(self):
-
-		while 1:
-			print("Home {}: It is day {}. My budget is {} dollars.".format(self.homeNumber, self.day, self.budget))
-			self.energy=self.productionRate-self.consumptionRate
-			self.decideWhatToDo()
-			if self.budget<0:
-				print("Home {}: Shit I'm broke!".format(self.homeNumber))
-				self.sendMessage('Broke')
-				break
-			self.finishCurrentDay()
-			self.waitForNextDay()
-			self.day+=1
+    def __init__(self, consumptionRate, productionRate, isGenerous,shared_temp,shared_sun):
+        super().__init__()
+        Home.numberOfHomes+=1
+        self.budget=1000000
+        self.consumptionRate=consumptionRate
+        self.productionRate=productionRate
+        self.day=1
+        self.energy=0
+        self.homeNumber=Home.numberOfHomes
+        self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)
+        self.isGenerous=isGenerous
+        # print("Home{}: My messageQueue is {}".format(self.homeNumber, self.messageQueue))
 
 
-	def finishCurrentDay(self):
-		self.sendMessage('Done')
+    def run(self):
+
+        while 1:
+            print("Home {}: It is day {}. My budget is {} dollars.".format(self.homeNumber, self.day, self.budget))
+            self.energy=self.productionRate-self.consumptionRate
+            self.decideWhatToDo()
+            if self.budget<0:
+                print("Home {}: Shit I'm broke!".format(self.homeNumber))
+                self.sendMessage('Broke')
+                break
+            self.finishCurrentDay()
+            self.waitForNextDay()
+            self.day+=1
 
 
-	def waitForNextDay(self):
-		message=self.receiveMessage()
+    def finishCurrentDay(self):
+        self.sendMessage('Done')
 
 
-	def decideWhatToDo(self):
-
-		if self.energy<0:
-			self.getEnergy()
-			if self.energy<0:
-				self.buyEnergy()
-		elif self.energy>0:
-			if self.isGenerous:
-				self.giveEnergy()
-			else:
-				self.sellEnergy()
+    def waitForNextDay(self):
+        message=self.receiveMessage()
 
 
-	def sendMessage(self, message):
+    def decideWhatToDo(self):
 
-		amount=abs(self.energy)
-		message= str(self.homeNumber) + " " + str(amount) + " " + message
-		MessageQueue(100).send(str(message).encode())
-		# print("Home{} sent: {}".format(self.homeNumber,message))
-
-
-	def receiveMessage(self):
-
-		x, t = self.messageQueue.receive()
-		message = x.decode()
-		# print("Home{} recieved: {}".format(self.homeNumber, message))
-		return message
+        if self.energy<0:
+            self.getEnergy()
+            if self.energy<0:
+                self.buyEnergy()
+        elif self.energy>0:
+            if self.isGenerous:
+                self.giveEnergy()
+            else:
+                self.sellEnergy()
 
 
-	def buyEnergy(self):
+    def sendMessage(self, message):
 
-		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
-		self.sendMessage('Buy')
-		price=int(self.receiveMessage())
-		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
-		self.budget+=self.energy*price
+        amount=abs(self.energy)
+        message= str(self.homeNumber) + " " + str(amount) + " " + message
+        MessageQueue(100).send(str(message).encode())
+        # print("Home{} sent: {}".format(self.homeNumber,message))
 
 
-	def sellEnergy(self):
+    def receiveMessage(self):
 
-		print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
-		self.sendMessage('Sell')
-		price=int(self.receiveMessage())
-		print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
-		self.budget+=self.energy*price
+        x, t = self.messageQueue.receive()
+        message = x.decode()
+        # print("Home{} recieved: {}".format(self.homeNumber, message))
+        return message
 
-	def getEnergy(self):
 
-		print("Home {}: I wanna get some free energy.".format(self.homeNumber))
-		self.sendMessage('Get')
-		amount=int(self.receiveMessage())
-		if amount==0:
-			print("Home {}: Dammit there's no free energy, I have to buy some.".format(self.homeNumber))
-			return
-		else:
-			print("Home {}: Nice! I got {} free energy.".format(self.homeNumber, amount))
-		self.energy+=amount
-		if self.energy==0:
-			print("Home {}: Perfect! I have all my energy needs covered.".format(self.homeNumber))
-		else:
-			print("Home {}: Oh, it's not enough. I still have to buy some energy.".format(self.homeNumber))
+    def buyEnergy(self):
 
-	def giveEnergy(self):
+        print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
+        self.sendMessage('Buy')
+        price=int(self.receiveMessage())
+        print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
+        self.budget+=self.energy*price
 
-		print("Home {}: I'm giving away some free energy.".format(self.homeNumber))
-		self.sendMessage('Give')
-		amount=int(self.receiveMessage())
 
-		if amount>0:
-			print("Home {}: Cool! I gave away {} free energy.".format(self.homeNumber, amount))
-		elif amount==0:
-			print("Home {}: Oh, no one wants my free energy. I'll have to sell it.".format(self.homeNumber))
-			self.sellEnergy()
+    def sellEnergy(self):
+
+        print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
+        self.sendMessage('Sell')
+        price=int(self.receiveMessage())
+        print("Home {}: It seems the price is {} dollars.".format(self.homeNumber,price))
+        self.budget+=self.energy*price
+
+    def getEnergy(self):
+
+        print("Home {}: I wanna get some free energy.".format(self.homeNumber))
+        self.sendMessage('Get')
+        amount=int(self.receiveMessage())
+        if amount==0:
+            print("Home {}: Dammit there's no free energy, I have to buy some.".format(self.homeNumber))
+            return
+        else:
+            print("Home {}: Nice! I got {} free energy.".format(self.homeNumber, amount))
+        self.energy+=amount
+        if self.energy==0:
+            print("Home {}: Perfect! I have all my energy needs covered.".format(self.homeNumber))
+        else:
+            print("Home {}: Oh, it's not enough. I still have to buy some energy.".format(self.homeNumber))
+
+    def giveEnergy(self):
+
+        print("Home {}: I'm giving away some free energy.".format(self.homeNumber))
+        self.sendMessage('Give')
+        amount=int(self.receiveMessage())
+
+        if amount>0:
+            print("Home {}: Cool! I gave away {} free energy.".format(self.homeNumber, amount))
+        elif amount==0:
+            print("Home {}: Oh, no one wants my free energy. I'll have to sell it.".format(self.homeNumber))
+            self.sellEnergy()
 
 
 
 
 class Market(Process):
 
-	def __init__(self, numberOfHomes,shared_temp,shared_sun):
+    def __init__(self, numberOfHomes,shared_temp,shared_sun):
 
-		super().__init__()
-		self.shared_sun=shared_sun
-		self.shared_temp=shared_temp
-		self.numberOfHomes=numberOfHomes
-		self.numberOfHomeThatAreDone=0
-		self.numberOfHomeThatAreDoneLock=Lock()
-		self.priceLock = Lock()
-		self.fLock=Lock()
-		self.aliveHomes=[True]*numberOfHomes
-		self.dayHasStarted=False
-		self.price=20000
-		self.gamma=.999999  # long-term attenuation coefficient for
-		self.f=0		# internal factor (amount bought-amount sold)
-		self.alpha=5	# modulating coefficient for factor for internal factors
-		self.freeEnergy=0
-		self.freeEnergyLimit=10
-		self.day=1
-		self.messageQueue=MessageQueue(100,IPC_CREAT)
-		MessageQueue(101,IPC_CREAT) #for weather
-		MessageQueue(102,IPC_CREAT) #for external
-		# print("Market: My messageQueue is {}",format(self.messageQueue))
+        super().__init__()
+        self.shared_sun=shared_sun
+        self.shared_temp=shared_temp
+        self.numberOfHomes=numberOfHomes
+        self.numberOfHomeThatAreDone=0
+        self.numberOfHomeThatAreDoneLock=Lock()
+        self.priceLock = Lock()
+        self.fLock=Lock()
+        self.aliveHomes=[True]*numberOfHomes
+        self.dayHasStarted=False
+        self.price=20000
+        self.gamma=.999999  # long-term attenuation coefficient for
+        self.f=0		# internal factor (amount bought-amount sold)
+        self.alpha=5	# modulating coefficient for factor for internal factors
+        self.freeEnergy=0
+        self.freeEnergyLimit=10
+        self.day=1
+        self.messageQueue=MessageQueue(100,IPC_CREAT)
+        MessageQueue(101,IPC_CREAT) #for weather
+        MessageQueue(102,IPC_CREAT) #for external
+        # print("Market: My messageQueue is {}",format(self.messageQueue))
 
 
 
-	def run(self):
+    def run(self):
 
 
-		signal(SIGUSR1, self.handleSignals)
-		signal(SIGUSR2, self.handleSignals)
+        signal(SIGUSR1, self.handleSignals)
+        signal(SIGUSR2, self.handleSignals)
 
-		external=External()
-		external.start()
+        external=External()
+        external.start()
 
-		Thread(target=self.waitForMessages).start()
+        Thread(target=self.waitForMessages).start()
 
 
-		while 1:
-			self.startTheDay()
-			self.goToNextDay()
+        while 1:
+            self.startTheDay()
+            self.goToNextDay()
 
 
 
-	def startTheDay(self):
-		print('Market: Waiting to start the day.')
-		self.waitForWeather()
-		self.waitForExternal()
-		print('Market: The day has started.')
-		self.dayHasStarted=True
+    def startTheDay(self):
+        print('Market: Waiting to start the day.')
+        self.waitForWeather()
+        self.waitForExternal()
+        print('Market: The day has started.')
+        self.dayHasStarted=True
 
 
 
-	def waitForWeather(self):
-		print('Market: Waiting for weather.')
-		MessageQueue(101).receive()
+    def waitForWeather(self):
+        print('Market: Waiting for weather.')
+        MessageQueue(101).receive()
 
-	def waitForExternal(self):
-		print('Market: Waiting for external.')
-		MessageQueue(102).receive()
+    def waitForExternal(self):
+        print('Market: Waiting for external.')
+        MessageQueue(102).receive()
 
 
 
 
-	def updatePrice(self):
-		with self.priceLock:
-			self.price=int(self.gamma*self.price+self.alpha*self.f)
-			with self.fLock:
-				self.f=0
-			if self.price<100:
-				self.price=100
-			print("Market: Updated the price. It is now {}.".format(self.price))
+    def updatePrice(self):
+        with self.priceLock:
+            self.price=int(self.gamma*self.price+self.alpha*self.f)
+            with self.fLock:
+                self.f=0
+            if self.price<100:
+                self.price=100
+            print("Market: Updated the price. It is now {}.".format(self.price))
 
 
-	def handleSignals(self, sig, frame):
-		if sig == SIGUSR1:
-			with self.priceLock:
-				self.price+=5000
-				print("Market: Signal from External received. Macron has increased the tax on energy! The price is increased by 5000. The energy now costs {} euros per unit.".format(self.price))
-		elif sig == SIGUSR2:
-			with self.priceLock:
-				self.price-=10000
-				print("Market: Signal from External received. INSA students found a way to perform efficient nuclear fusion! The price is decreased by 10000. The energy now costs {} euros per unit.".format(self.price))
+    def handleSignals(self, sig, frame):
+        if sig == SIGUSR1:
+            with self.priceLock:
+                self.price+=5000
+                print("Market: Signal from External received. Macron has increased the tax on energy! The price is increased by 5000. The energy now costs {} euros per unit.".format(self.price))
+        elif sig == SIGUSR2:
+            with self.priceLock:
+                self.price-=10000
+                print("Market: Signal from External received. INSA students found a way to perform efficient nuclear fusion! The price is decreased by 10000. The energy now costs {} euros per unit.".format(self.price))
 
 
 
-	def goToNextDay(self):
+    def goToNextDay(self):
 
-		# print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
+        # print("numberOfHomeThatAreDone:{}, numberOfHomes:{}".format(self.numberOfHomeThatAreDone,self.numberOfHomes))
 
-		while self.numberOfHomeThatAreDone!=self.numberOfHomes:
-			pass
+        while self.numberOfHomeThatAreDone!=self.numberOfHomes:
+            pass
 
 
 
-		self.numberOfHomeThatAreDone=0
-		self.day+=1
-		print('\n\nMarket: IT IS DAY {}!'.format(self.day))
-		self.updatePrice()
-		for i in range (1,len(self.aliveHomes)+1):
-			if self.aliveHomes[i-1]:
-				self.sendMessage(i,'Go')
+        self.numberOfHomeThatAreDone=0
+        self.day+=1
+        print('\n\nMarket: IT IS DAY {}!'.format(self.day))
+        self.updatePrice()
+        for i in range (1,len(self.aliveHomes)+1):
+            if self.aliveHomes[i-1]:
+                self.sendMessage(i,'Go')
 
-		MessageQueue(200).send('Done'.encode())
-		MessageQueue(300).send('Done'.encode())
+        MessageQueue(200).send('Done'.encode())
+        MessageQueue(300).send('Done'.encode())
 
 
 
-	def waitForMessages(self):
+    def waitForMessages(self):
 
-		print('Market: Waiting for messages from homes.')
+        print('Market: Waiting for messages from homes.')
 
-		with ThreadPoolExecutor(max_workers=3) as executor:
-			while 1:
-				message=self.receiveMessage()
-				executor.submit(self.handleMessage, message)
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            while 1:
+                message=self.receiveMessage()
+                executor.submit(self.handleMessage, message)
 
 
-	def handleMessage(self, message):
+    def handleMessage(self, message):
 
-		while not self.dayHasStarted:
-			pass
+        while not self.dayHasStarted:
+            pass
 
 
-		print('Market: Handling the message "{}".'.format(message))
+        print('Market: Handling the message "{}".'.format(message))
 
-		message=message.split()
-		homeNumber=int(message[0])
-		amount=int(message[1])
-		message=message[2]
+        message=message.split()
+        homeNumber=int(message[0])
+        amount=int(message[1])
+        message=message[2]
 
-		if message=='Broke':
-			print('Market: Oh no! Home{} went broke.'.format(homeNumber))
-			self.aliveHomes[homeNumber-1]=False
-			print(self.aliveHomes)
-			self.numberOfHomes-=1 #lock
-			print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
+        if message=='Broke':
+            print('Market: Oh no! Home{} went broke.'.format(homeNumber))
+            self.aliveHomes[homeNumber-1]=False
+            print(self.aliveHomes)
+            self.numberOfHomes-=1 #lock
+            print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
 
-			if self.numberOfHomes==0:
-				self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
+            if self.numberOfHomes==0:
+                self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
 
-		elif message=='Buy':
-			with self.priceLock:
-				print('Market: The price of energy is {} dollars.'.format(self.price))
-				self.sendMessage(homeNumber, self.price)
-			print('Market: Demand is up, increasing the price.')
+        elif message=='Buy':
+            with self.priceLock:
+                print('Market: The price of energy is {} dollars.'.format(self.price))
+                self.sendMessage(homeNumber, self.price)
+            print('Market: Demand is up, increasing the price.')
 
 
-			with self.fLock:
-				self.f+=1
+            with self.fLock:
+                self.f+=1
 
 
-		elif message=='Sell':
-			with self.priceLock:
-				print('Market: The price of energy is {} dollars.'.format(self.price))
-				self.sendMessage(homeNumber, self.price)
-			print('Market: Supply is up, decreasing the price.')
+        elif message=='Sell':
+            with self.priceLock:
+                print('Market: The price of energy is {} dollars.'.format(self.price))
+                self.sendMessage(homeNumber, self.price)
+            print('Market: Supply is up, decreasing the price.')
 
 
-			with self.fLock:
-				self.f-=1
+            with self.fLock:
+                self.f-=1
 
-		elif message=='Give':
-			print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
-			if self.freeEnergy>=self.freeEnergyLimit:
-				print('Market: Woah slow down! I have way too much free energy.')
-				self.sendMessage(homeNumber, 0)
-			else:
-				self.freeEnergy+=amount
-				self.sendMessage(homeNumber, amount)
-			print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
+        elif message=='Give':
+            print('Market: WOW! Home{} is giving away {} units of energy for free!'.format(homeNumber, amount))
+            if self.freeEnergy>=self.freeEnergyLimit:
+                print('Market: Woah slow down! I have way too much free energy.')
+                self.sendMessage(homeNumber, 0)
+            else:
+                self.freeEnergy+=amount
+                self.sendMessage(homeNumber, amount)
+            print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
 
-		elif message=='Get':
-			print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
-			if self.freeEnergy>=amount:
-				self.sendMessage(homeNumber, amount)
-				self.freeEnergy-=amount
-				print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
-			else:
-				self.sendMessage(homeNumber, self.freeEnergy)
-				self.freeEnergy-=0
-				print('Market: Currently no free energy is available'.format(self.freeEnergy))
+        elif message=='Get':
+            print('Market: LOL! Home{} wants {} units of energy for free!'.format(homeNumber, amount))
+            if self.freeEnergy>=amount:
+                self.sendMessage(homeNumber, amount)
+                self.freeEnergy-=amount
+                print('Market: Currently {} units of free energy available'.format(self.freeEnergy))
+            else:
+                self.sendMessage(homeNumber, self.freeEnergy)
+                self.freeEnergy-=0
+                print('Market: Currently no free energy is available'.format(self.freeEnergy))
 
-		elif message=='Done':
-			print('Market: Home{} is done.'.format(homeNumber))
-			with self.numberOfHomeThatAreDoneLock:
-				self.numberOfHomeThatAreDone+=1
+        elif message=='Done':
+            print('Market: Home{} is done.'.format(homeNumber))
+            with self.numberOfHomeThatAreDoneLock:
+                self.numberOfHomeThatAreDone+=1
 
 
 
@@ -327,59 +325,59 @@ class Market(Process):
 
 
 
-	def sendMessage(self, homeNumber, message):
+    def sendMessage(self, homeNumber, message):
 
-		MessageQueue(homeNumber).send(str(message).encode())
-		# print("Market sent: {}".format(message))
+        MessageQueue(homeNumber).send(str(message).encode())
+        # print("Market sent: {}".format(message))
 
 
-	def receiveMessage(self):
+    def receiveMessage(self):
 
-		x, t = self.messageQueue.receive()
-		message = x.decode()
-		# print("Market recieved: {}".format(message))
-		return message
+        x, t = self.messageQueue.receive()
+        message = x.decode()
+        # print("Market recieved: {}".format(message))
+        return message
 
 
 
 class External(Process):
 
-	def __init__(self):
-		super().__init__()
-		MessageQueue(300,IPC_CREAT)
-		self.day=1
+    def __init__(self):
+        super().__init__()
+        MessageQueue(300,IPC_CREAT)
+        self.day=1
 
 
-	def run(self):
-		self.marketPID=getppid()
-		# print("External: Market's PID is {}.".format(marketPID))
+    def run(self):
+        self.marketPID=getppid()
+        # print("External: Market's PID is {}.".format(marketPID))
 
 
-		while 1:
-			print('External: It is day {}.'.format(self.day))
-			# self.determineTheExternalFactors()
-			MessageQueue(102).send('Done'.encode())
-			MessageQueue(300).receive()
-			self.day+=1
+        while 1:
+            print('External: It is day {}.'.format(self.day))
+            # self.determineTheExternalFactors()
+            MessageQueue(102).send('Done'.encode())
+            MessageQueue(300).receive()
+            self.day+=1
 
 
-	def determineTheExternalFactors(self):
+    def determineTheExternalFactors(self):
 
-		if randint(1,100)<=10:
-			kill(self.marketPID,SIGUSR1)
-			print('External: Macron!')
+        if randint(1,100)<=10:
+            kill(self.marketPID,SIGUSR1)
+            print('External: Macron!')
 
-		if randint(1,100)<=5:
-			kill(self.marketPID,SIGUSR2)
-			print('External: Fusion!')
+        if randint(1,100)<=5:
+            kill(self.marketPID,SIGUSR2)
+            print('External: Fusion!')
 
 
 
 class Weather(Process):
-	def __init__(self,shared_temp,shared_sun):
-		super().__init__()
-		MessageQueue(200,IPC_CREAT)
-		self.day=1
+    def __init__(self,shared_temp,shared_sun):
+        super().__init__()
+        MessageQueue(200,IPC_CREAT)
+        self.day=1
         self.shared_temp=shared_temp
         self.shared_sun=shared_sun
         self.tab_temp=[3,7,11,12,20,30,40,24,22,14,8,4]
@@ -389,95 +387,95 @@ class Weather(Process):
         self.day=1
 
 
-	def run(self):
-		while 1:
-			print('Weather: It is day {}.'.format(self.day))
+    def run(self):
+        while 1:
+            print('Weather: It is day {}.'.format(self.day))
 
-			self.determineWeatherConditions()
+            self.determineWeatherConditions()
 
-			MessageQueue(101).send('Done'.encode())
-			MessageQueue(200).receive()
-			self.day+=1
-			if self.month >= 30:
-				self.month += 1
-				self.day = 1
+            MessageQueue(101).send('Done'.encode())
+            MessageQueue(200).receive()
+            self.day+=1
+            if self.month >= 30:
+                self.month += 1
+                self.day = 1
 
-	def determineWeatherConditions(self):
+    def determineWeatherConditions(self):
 
-		# Temperature ?
-		today_temp = self.tab_temp[self.month] + randrange(-self.incertitude_range,self.incertitude_range,0,25)
-		self.shared_temp.value(today_temp)
-
-		# Is there somme sun ?
-		proba = randint(0,self.tab_sun[self.month])
-		if proba > self.tab_sun[self.month]:
-			self.shared_sun.value(0)
-		else:
-			self.shared_sun.value(1)
-
+        # Temperature ?
+        today_temp = self.tab_temp[self.month] + randrange(-self.incertitude_range,self.incertitude_range,0.25)
+        self.shared_temp.value(today_temp)
+        print(today_temp)
+        # Is there somme sun ?
+        proba = randint(0,self.tab_sun[self.month])
+        if proba > self.tab_sun[self.month]:
+            self.shared_sun.value(0)
+        else:
+            self.shared_sun.value(1)
+        print(self.shared_sun.value)
 
 
 
 def clean():									#To clean the message queues.
-	clear=MessageQueue(100,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(100,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(1,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(1,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(2,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(2,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(3,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(3,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(4,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(4,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(5,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(5,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(101,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(101,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(102,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(102,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(200,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(200,IPC_CREAT)
+    clear.remove()
 
-	clear=MessageQueue(300,IPC_CREAT)
-	clear.remove()
+    clear=MessageQueue(300,IPC_CREAT)
+    clear.remove()
 
 
 if __name__=="__main__":
 
 
-	clean()
+    clean()
 
 
 
-	temperature=Value('d', 12.5)
-	sunny=Value('i', 1)  					# 1: sunny, 0: cloudy
+    temperature=Value('d', 12.5)
+    sunny=Value('i', 1)  					# 1: sunny, 0: cloudy
 
 
 
-	weather=Weather(temperature,sunny)
+    weather=Weather(temperature,sunny)
 
-	market=Market(4,temperature,sunny)
+    market=Market(4,temperature,sunny)
 
-	home1=Home(10, 0, True)
-	home2=Home(11, 10, True)
-	home3=Home(10, 9, False)
-	home4=Home(9, 2, True)
+    home1=Home(10, 0, True,weather,sunny)
+    home2=Home(11, 10, True,weather,sunny)
+    home3=Home(10, 9, False,weather,sunny)
+    home4=Home(9, 2, True,weather,sunny)
 
 
 
-	weather.start()
+    weather.start()
 
-	market.start()
+    market.start()
 
-	home1.start()
-	home2.start()
-	home3.start()
-	home4.start()
+    home1.start()
+    home2.start()
+    home3.start()
+    home4.start()
