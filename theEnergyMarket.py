@@ -28,7 +28,7 @@ class Home(Process):
 
 		super().__init__()
 		Home.numberOfHomes+=1
-		self.budget=10000000
+		self.budget=1000000
 		self.consumptionRate=consumptionRate
 		self.productionRate=productionRate
 		self.day=1
@@ -142,7 +142,7 @@ class Home(Process):
 
 class Market(Process):
 
-	def __init__(self, numberOfHomes=4):
+	def __init__(self, numberOfHomes=5):
 
 		super().__init__()
 		self.numberOfHomes=numberOfHomes
@@ -189,7 +189,7 @@ class Market(Process):
 		Thread(target=self.waitForMessages).start()
 		Thread(target=self.manageTheDay).start()
 
-		self.waitForGivenSecondsThenShowGraphs(100)	
+		self.waitForGivenSecondsThenShowGraphs(60)	
 		# self.showGraphsWhenAllHomesAreBroke()
 
 
@@ -279,7 +279,7 @@ class Market(Process):
 			del self.homesBudgetList[i][-1]
 
 		budgetArray=np.asarray(self.homesBudgetList[0])
-		plt.plot(self.dayArray, budgetArray)
+		plt.plot(self.dayArray, budgetArray, label='Home 1')
 		plt.xlabel('Days')
 		plt.ylabel('Budget')
 		plt.title('The Budgets of Homes as Days Pass')
@@ -287,7 +287,9 @@ class Market(Process):
 		if self.initialNumberOfHomes>1:
 			for i in range(1,self.initialNumberOfHomes):
 				budgetArray=np.asarray(self.homesBudgetList[i])
-				plt.plot(self.dayArray, budgetArray)
+				plt.plot(self.dayArray, budgetArray,label='Home {}'.format(i+1))
+
+		plt.legend()
 
 		text='Days when Macron increased the tax on energy: '
 
@@ -551,18 +553,18 @@ if __name__=="__main__":
 
 	weather=Weather()
 
-	market=Market()
+	market=Market(10)							#by default therre are 5 homes, if more or less homes is desired, put is as an argument, e.g., if you only want a single home write Market()
 
 	home1=Home(10, 5, True)
 	home2=Home(10, 20, True)
 	home3=Home(10, 12, False)
 	home4=Home(9, 2, True)
 	home5=Home(2, 0, True)
-	# home6=Home(5, 20, True)
-	# home7=Home(10, 20, False)
-	# home8=Home(1, 0, False)
-	# home9=Home(2, 2, True)
-	# home10=Home(1, 3, True)
+	home6=Home(15, 20, True)
+	home7=Home(10, 20, False)
+	home8=Home(20, 0, False)
+	home9=Home(2, 2, True)
+	home10=Home(5, 3, True)
 
 
 	weather.start()
@@ -574,8 +576,8 @@ if __name__=="__main__":
 	home3.start()
 	home4.start()
 	home5.start()
-	# home6.start()
-	# home7.start()
-	# home8.start()
-	# home9.start()
-	# home10.start()
+	home6.start()
+	home7.start()
+	home8.start()
+	home9.start()
+	home10.start()
