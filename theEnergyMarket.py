@@ -553,7 +553,7 @@ if __name__=="__main__":
 
 	weather=Weather()
 
-	market=Market(10)							#by default therre are 5 homes, if more or less homes is desired, put is as an argument, e.g., if you only want a single home write Market()
+	market=Market(10)							#by default therre are 5 homes, if more or less homes is desired, put is as an argument, e.g., if you only want a single home write Market(1)
 
 	home1=Home(10, 5, True)
 	home2=Home(10, 20, True)
