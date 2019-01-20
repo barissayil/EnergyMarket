@@ -163,16 +163,13 @@ class Market(Process):
 		self.messageQueue=MessageQueue(100,IPC_CREAT)
 		self.dayArray=np.array([self.day])
 		self.priceArray=np.array([self.price])
-		with temperatureLock:
-			self.temperatureArray=np.array([])
-		with sunnyLock:
-			self.sunnyArray=np.array([])
-		self.macronList=[]		#Days when Macron increased the tax on energy.
-		self.fusionList=[]		#Days when there was a fusion breakthrough.
-
-		self.homesBudgetList=[]
+		self.temperatureArray=np.array([])
+		self.sunnyArray=np.array([])
+		self.macronDays=[]		#Days when Macron increased the tax on energy.
+		self.fusionDays=[]		#Days when there was a fusion breakthrough.
+		self.budgetsOfHomes=[]
 		for i in range(self.numberOfHomes):
-			self.homesBudgetList.append([1000000])
+			self.budgetsOfHomes.append([1000000])
 		MessageQueue(101,IPC_CREAT) #for weather
 		MessageQueue(102,IPC_CREAT) #for external
 
@@ -189,7 +186,7 @@ class Market(Process):
 		Thread(target=self.waitForMessages).start()
 		Thread(target=self.manageTheDay).start()
 
-		self.waitForGivenSecondsThenShowGraphs(60)	
+		self.waitForGivenSecondsThenShowGraphs(20)	
 		# self.showGraphsWhenAllHomesAreBroke()
 
 
@@ -232,7 +229,7 @@ class Market(Process):
 	def startTheDay(self):
 
 		for i in range(self.initialNumberOfHomes):
-			self.homesBudgetList[i].append(0)
+			self.budgetsOfHomes[i].append(0)
 
 		self.waitForWeather()
 		self.waitForExternal()
@@ -242,13 +239,13 @@ class Market(Process):
 	def waitForWeather(self):
 
 		MessageQueue(101).receive()
-		with temperatureLock:
-			self.temperatureArray=np.append(self.temperatureArray,temperature.value)
-		with sunnyLock:
-			if sunny.value==1:
-				self.sunnyArray=np.append(self.sunnyArray,'sunny')
-			else:
-				self.sunnyArray=np.append(self.sunnyArray,'cloudy')
+
+		self.temperatureArray=np.append(self.temperatureArray,temperature.value)
+
+		if sunny.value==1:
+			self.sunnyArray=np.append(self.sunnyArray,'sunny')
+		else:
+			self.sunnyArray=np.append(self.sunnyArray,'cloudy')
 
 
 	def waitForExternal(self):
@@ -258,13 +255,8 @@ class Market(Process):
 
 	def updatePrice(self):
 
-		with temperatureLock:
-			temperatureValue=temperature.value
-		with sunnyLock:
-			sunnyValue=sunny.value
-
 		with self.priceLock:
-			self.price=int((self.gamma*self.price+self.alpha*self.f)*((20/temperatureValue)**(1./10))*((sunnyValue)**(1./1000)))	#SUNNY? DAMN NEGATIVE NALJSKLA
+			self.price=int((self.gamma*self.price+self.alpha*self.f)*((20/temperature.value)**(1./10))*((sunny.value)**(1./1000)))	#SUNNY? DAMN NEGATIVE NALJSKLA
 			self.priceArray=np.append(self.priceArray,self.price)
 			with self.fLock:
 				self.f=0
@@ -276,30 +268,17 @@ class Market(Process):
 	def showGraphs(self):
 
 		for i in range(self.initialNumberOfHomes):
-			del self.homesBudgetList[i][-1]
+			del self.budgetsOfHomes[i][-1]
 
-		budgetArray=np.asarray(self.homesBudgetList[0])
-		plt.plot(self.dayArray, budgetArray, label='Home 1')
+		for i in range(self.initialNumberOfHomes):
+			budgetArray=np.asarray(self.budgetsOfHomes[i])
+			plt.plot(self.dayArray, budgetArray,label='Home {}'.format(i+1))
 		plt.xlabel('Days')
 		plt.ylabel('Budget')
 		plt.title('The Budgets of Homes as Days Pass')
-
-		if self.initialNumberOfHomes>1:
-			for i in range(1,self.initialNumberOfHomes):
-				budgetArray=np.asarray(self.homesBudgetList[i])
-				plt.plot(self.dayArray, budgetArray,label='Home {}'.format(i+1))
-
 		plt.legend()
 
-		text='Days when Macron increased the tax on energy: '
 
-		for elem in self.macronList:
-			text+=str(elem)+' '
-
-		text+='\nDays when there was a fusion breakthrough: '
-
-		for elem in self.fusionList:
-			text+=str(elem)+' '
 
 		fig, ax1 = plt.subplots()
 
@@ -323,8 +302,15 @@ class Market(Process):
 		ax2.plot(self.dayArray, self.sunnyArray,'gD')
 		ax2.tick_params(axis='y', labelcolor=color)
 
-
 		fig.tight_layout()  # otherwise the right y-label is slightly clipped
+
+		text='Days when Macron increased the tax on energy: '
+		for elem in self.macronDays:
+			text+=str(elem)+' '
+		text+='\nDays when there was a fusion breakthrough: '
+		for elem in self.fusionDays:
+			text+=str(elem)+' '
+
 		plt.gcf().text(.02, .02, text, fontsize=10)
 		plt.show()
 
@@ -337,13 +323,13 @@ class Market(Process):
 			with self.priceLock:
 				self.price=int(self.price*1.10)
 				print("Market: Macron has increased the tax on energy! The energy price increased from {} to {}.".format(oldPrice,self.price))
-				self.macronList.append(self.day)
+				self.macronDays.append(self.day)
 
 		elif sig == SIGUSR2:
 			with self.priceLock:
 				self.price=int(self.price/1.5)
 				print("Market: INSA students made a breakthrough on nuclear fusion! The energy price decreased from {} to {}.".format(oldPrice,self.price))
-				self.fusionList.append(self.day)
+				self.fusionDays.append(self.day)
 
 
 	def goToNextDay(self):
@@ -389,7 +375,7 @@ class Market(Process):
 		if budget<0:
 			budget=0
 
-		self.homesBudgetList[homeNumber-1][self.day]=budget
+		self.budgetsOfHomes[homeNumber-1][self.day]=budget
 
 		if message=='Broke':
 			print('Market: Oh no! Home{} went broke.'.format(homeNumber))
@@ -511,29 +497,27 @@ class Weather(Process):
 
 	def determineWeatherConditions(self):
 
-		with sunnyLock:
-			if sunny.value==1:
-				if randint(1,100)<=70:	#if yesterday was sunny, there's a 70% chance today is as well.
-					sunny.value=1
-					print("Weather: Today it's sunny :D!")
-				else:
-					sunny.value=10
-					print("Weather: Today it's cloudy :(.")
-					self.numberOfConsecutiveCloudyDays+=1
+		
+		if sunny.value==1:
+			if randint(1,100)<=70:	#if yesterday was sunny, there's a 70% chance today is as well.
+				sunny.value=1
+				print("Weather: Today it's sunny :D!")
 			else:
-				if randint(1,100)<=98-2*self.numberOfConsecutiveCloudyDays: 	#if yesterday the beginning of the cloudy days, there's a 98% chance today is cloudy as well. with each consecutive clody day
-																				#the chance for the next day to be cloudy decreases by 2%.
-					sunny.value=10
-					print("Weather: Today it's cloudy :(.")
-					self.numberOfConsecutiveCloudyDays+=1
-				else:
-					sunny.value=1
-					print("Weather: Today it's sunny :D!")
+				sunny.value=10
+				print("Weather: Today it's cloudy :(.")
+				self.numberOfConsecutiveCloudyDays+=1
+		else:
+			if randint(1,100)<=98-2*self.numberOfConsecutiveCloudyDays: 	#if yesterday the beginning of the cloudy days, there's a 98% chance today is cloudy as well. with each consecutive clody day
+																			#the chance for the next day to be cloudy decreases by 2%.
+				sunny.value=10
+				print("Weather: Today it's cloudy :(.")
+				self.numberOfConsecutiveCloudyDays+=1
+			else:
+				sunny.value=1
+				print("Weather: Today it's sunny :D!")
 
-
-		with temperatureLock:
-			temperature.value+=np.random.normal(scale=.1)
-			print("Weather: Today it's {}°C.".format(temperature.value))
+		temperature.value+=np.random.normal(scale=.1)
+		print("Weather: Today it's {}°C.".format(temperature.value))
 
 
 
@@ -542,42 +526,30 @@ if __name__=="__main__":
 
 
 	temperature=Value('d', 20)
-	temperatureLock=Lock()
-
-
 	sunny=Value('i', 1)  					# 1: sunny, 10: cloudy
-	sunnyLock=Lock()
 	
-
-
-
 	weather=Weather()
-
-	market=Market(10)							#by default therre are 5 homes, if more or less homes is desired, put is as an argument, e.g., if you only want a single home write Market(1)
-
+	market=Market()							#by default there are 5 homes, if more or less homes is desired, put it as an argument, e.g., if you only want a single home write Market(1)
 	home1=Home(10, 5, True)
 	home2=Home(10, 20, True)
 	home3=Home(10, 12, False)
 	home4=Home(9, 2, True)
 	home5=Home(2, 0, True)
-	home6=Home(15, 20, True)
-	home7=Home(10, 20, False)
-	home8=Home(20, 0, False)
-	home9=Home(2, 2, True)
-	home10=Home(5, 3, True)
-
+	# home6=Home(15, 20, True)
+	# home7=Home(10, 20, False)
+	# home8=Home(20, 0, False)
+	# home9=Home(2, 2, True)
+	# home10=Home(5, 3, True)
 
 	weather.start()
-
 	market.start()
-	
 	home1.start()
 	home2.start()
 	home3.start()
 	home4.start()
 	home5.start()
-	home6.start()
-	home7.start()
-	home8.start()
-	home9.start()
-	home10.start()
+	# home6.start()
+	# home7.start()
+	# home8.start()
+	# home9.start()
+	# home10.start()
