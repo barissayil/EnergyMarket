@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-#Important: When the graphs appear close them and then press CTRL+Z on the terminal to safely close the program.
+#Important: When the graphs appear close them and then press CTRL+Z on the terminal to safely stop the program.
 
 
 
