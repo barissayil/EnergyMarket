@@ -3,7 +3,7 @@ A simulation of an energy market using concurrent execution features of Python. 
 
 https://github.com/BarisSayil/EnergyMarket
 
-
+There are some nice figures in the aptly named folder.
 
 ##  Coded using
                                        
