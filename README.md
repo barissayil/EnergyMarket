@@ -7,7 +7,7 @@ https://github.com/BarisSayil/EnergyMarket
 
 ##  Coded using
                                        
-Python 3.7.1
-sysv_ipc 1.0.0
-NumPy  1.15.4
-Matplotlib 3.0.2
+- Python 3.7.1
+- sysv_ipc 1.0.0
+- NumPy  1.15.4
+- Matplotlib 3.0.2
