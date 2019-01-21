@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 class Home(Process):
 
-	numberOfHomes=0					#A class variable that allows us to keep track of the number of homes during their initialization.
+	numberOfHomes=0		#A class variable that allows us to keep track of the number of homes during their initialization.
 
 	def __init__(self, consumptionRate, productionRate, isGenerous):
 
@@ -92,7 +92,7 @@ class Home(Process):
 				self.sellEnergy()
 
 
-	def sendMessage(self, message):			#Each time a home sends a message, it includes its home number, the amount of energy (sell or buy), its current budget, and what it wants to do.
+	def sendMessage(self, message):	#Each time a home sends a message, it includes its home number, the amount of energy (sell or buy), its current budget, and what it wants to do.
 
 		amount=abs(self.energy)
 		message= str(self.homeNumber) + ' ' + str(amount) + ' ' + str(self.budget) + ' ' + message
@@ -189,7 +189,7 @@ class Market(Process):
 
 		self.fLock=Lock()								#Some as other locks.
 
-		self.alpha=3									#The modulating coefficient for factor for internal factors.
+		self.alpha=1									#The modulating coefficient for factor for internal factors.
 
 		self.freeEnergy=0								#This is the energy that the generous homes with energy surplusses give away.
 
@@ -234,9 +234,8 @@ class Market(Process):
 		Thread(target=self.manageTheDay).start()		#This was supposed to be in the main thread but when Market received signals the program crashed. Like this the main thread is left empty and doesn't crush. (But don't know why.)
 
 
-		#Two choices for the visualization. Make sure not to choose the second one if even a single home produces more energy then they consume.
-		#If matplotlib and numpy are not installed, choose neither and you can still see the stuff happening on the terminal.
-		self.waitForGivenSecondsThenShowGraphs(100)	
+		#Two choices for the visualization. Make sure not to choose the second one if even a single home produces more energy then they consume for obvious reasons.
+		self.waitForGivenSecondsThenShowGraphs(100)			#Between 20 and 200 seconds is recommended.
 		# self.showGraphsWhenAllHomesAreBroke()
 
 
@@ -273,6 +272,7 @@ class Market(Process):
 
 		while 1:
 			self.startTheDay()
+			# sleep(5)						#Optional. Can be used to make the simulation slower. However, don't try to see the graphs.
 			self.goToNextDay()
 
 
@@ -306,7 +306,7 @@ class Market(Process):
 	def updatePrice(self):		#Updates the price at the end of the day according to number of homes buying vs selling, temperature, and weather.
 
 		with self.priceLock:
-			self.price=int((self.gamma*self.price+self.alpha*self.f)*((20/temperature.value)**(1./10))*((sunny.value)**(1./1000)))
+			self.price=int((self.gamma*self.price+self.alpha*self.f)*((20/temperature.value)**(1./100))*((sunny.value)**(1./10000)))
 			self.priceArray=np.append(self.priceArray,self.price)	#Records the current day's energy price.
 			with self.fLock:
 				self.f=0
@@ -511,7 +511,7 @@ class External(Process):
 		self.marketPID=getppid()
 		while 1:
 			print('External: It is day {}.'.format(self.day))
-			self.determineTheExternalFactors()						#Each day, external determines if an external event has occurred.
+			# self.determineTheExternalFactors()						#Each day, external determines if an external event has occurred.
 
 			MessageQueue(102).send('Done'.encode())					#After, it lets the market know that it can start the day.
 
@@ -522,7 +522,7 @@ class External(Process):
 
 	def determineTheExternalFactors(self):
 
-		if randint(1,100)<=5:										#Each day there's a 5% chance that Macron will increase the tax on energy.
+		if randint(1,100)<=2:										#Each day there's a 5% chance that Macron will increase the tax on energy.
 			kill(self.marketPID,SIGUSR1)
 			print('External: Macron increased the tax on energy!')
 
@@ -579,7 +579,7 @@ class Weather(Process):
 				sunny.value=1
 				print("Weather: Today it's sunny :D!")
 
-		temperature.value+=np.random.normal(scale=.1)					#Wheater changes the temperature according to a Gaussian distribution with scale .1.
+		temperature.value+=np.random.normal(scale=.2)					#Wheater changes the temperature according to a Gaussian distribution with scale .2.
 		print("Weather: Today it's {}°C.".format(temperature.value))
 
 
@@ -590,8 +590,22 @@ if __name__=="__main__":
 
 	#INTRODUCTION
 	#This is a simulation of an energy market using concurrent execution features of Python. There are 4 kinds of processes: Market, Home, Weather, External.
-	#......
-	#......
+
+	#This can be thought of as a small village. There can a a single home or 10 or anywhere between. More than 10 home is also possible but since my computer isn't very powerful I didn't try it.
+	#All homes have an energy comsumption per day. This doesn't change. Some homes also have a small nuclear reactor that produces some energy for them, this is also constant.
+	#If homes produce less energy than they produce, they try to get some energy for free and if that fails they buy it on the market.
+	#Some homes are generous and will try to give their surplus of energy, others will sell any surplus immediately.
+	
+	#The climate here is constant and the temperature changes little. There are sunny and cloudy days.
+
+	#There are some external events that occur as well. For instance every day there's a a very small chance that a breakthrough in nuclear fusion will be developped. Also a sightly bigger
+	#chance that Macron will increase the tax on energy.
+
+	#Market manages everything that happens. If a home wants to buy/sell energy it will tell it the price. Each day it updates the price according to external and internal factors such as temperature and 
+	#a increase on the price of energy. It also syncronizes all the other processes. Each day it waits until Weather and External are done, then deals with all the homes. After a day is over it tells
+	#all other processes that they can proceed to the next day.
+
+	#There is also the option to have some visualization. Check the run() method of Market class for more info.
 
 
 
@@ -604,19 +618,19 @@ if __name__=="__main__":
 	# We instantiate all the processes we want in the simulation:
 	weather=Weather()						# No arguments.
 
-	market=Market()							# Market takes the number of homes as an argument. However, by default there are 5 homes so if that is the number of homes desired, it can be left out.
+	market=Market(10)							# Market takes the number of homes as an argument. However, by default there are 5 homes so if that is the number of homes desired, it can be left out.
 											# If more or less homes is desired put it as an argument, e.g., for a single home write Market(1)
 
 	home1=Home(10, 5, True)					# Homes take the arguments consumptionRate, productionRate, and isGenerous.
-	home2=Home(10, 20, True)
+	home2=Home(10, 11, True)
 	home3=Home(10, 12, False)
 	home4=Home(9, 2, True)
 	home5=Home(2, 0, True)
-	# home6=Home(15, 20, True)
-	# home7=Home(10, 20, False)
-	# home8=Home(20, 0, False)
-	# home9=Home(2, 2, True)
-	# home10=Home(5, 3, True)
+	home6=Home(15, 13, True)
+	home7=Home(10, 1, False)
+	home8=Home(20, 0, False)
+	home9=Home(2, 2, True)
+	home10=Home(5, 3, True)
 
 
 	# We start the processes that we have instantiated above.
@@ -627,8 +641,8 @@ if __name__=="__main__":
 	home3.start()
 	home4.start()
 	home5.start()
-	# home6.start()
-	# home7.start()
-	# home8.start()
-	# home9.start()
-	# home10.start()
+	home6.start()
+	home7.start()
+	home8.start()
+	home9.start()
+	home10.start()
