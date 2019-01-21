@@ -11,3 +11,7 @@ https://github.com/BarisSayil/EnergyMarket
 - sysv_ipc 1.0.0
 - NumPy  1.15.4
 - Matplotlib 3.0.2
+
+##  Instructions
+
+After making sure you have all the packages you can directly run theEnergyMarket.py on the terminal. Other then seeing the inputs on the terminal, you also have the option to output figures, created using plotly. To do so, go to the run() function of Market and choose one of the options.
