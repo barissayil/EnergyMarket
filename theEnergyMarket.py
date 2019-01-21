@@ -322,7 +322,7 @@ class Market(Process):
 			del self.budgetsOfHomes[i][-1]
 
 		for i in range(self.initialNumberOfHomes):	#Plots the budget for each home.
-			budgetArray=np.asarray(self.budgetsOfHomes[i])
+			budgetArray=np.asarray(self.budgetsOfHomes[i])	#Numpy'y asarray function converts the list to an array so that we can plot it.
 			plt.plot(self.dayArray, budgetArray,label='Home {}'.format(i+1))
 		plt.xlabel('Days')
 		plt.ylabel('Budget')
@@ -340,10 +340,10 @@ class Market(Process):
 		ax1.tick_params(axis='y', labelcolor=color)
 		plt.title('The Price of Energy and Various Factors on the Latter as Days Pass')
 
-		ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+		ax2 = ax1.twinx()  # Instantiate a second axes that shares the same x-axis.
 
 		color = 'tab:red'
-		ax2.set_ylabel('Temperature', color=color)  # we already handled the x-label with ax1
+		ax2.set_ylabel('Temperature', color=color)  # We already handled the x-label with ax1.
 		ax2.plot(self.dayArray, self.temperatureArray, color=color, linestyle='--')
 		ax2.tick_params(axis='y', labelcolor=color)
 
@@ -353,7 +353,7 @@ class Market(Process):
 		ax2.plot(self.dayArray, self.sunnyArray,'gD')
 		ax2.tick_params(axis='y', labelcolor=color)
 
-		fig.tight_layout()  # otherwise the right y-label is slightly clipped
+		fig.tight_layout()  # Otherwise the right y-label is slightly clipped.
 
 		text='Days when Macron increased the tax on energy: '
 		for elem in self.macronDays:
@@ -437,7 +437,7 @@ class Market(Process):
 			print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
 
 			if self.numberOfHomes==0:	#This means the simulation must stop.
-				self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
+				self.numberOfHomes=100	#This freezes the simulation.
 
 		elif message=='Buy':
 			with self.priceLock:
@@ -511,7 +511,7 @@ class External(Process):
 		self.marketPID=getppid()
 		while 1:
 			print('External: It is day {}.'.format(self.day))
-			# self.determineTheExternalFactors()						#Each day, external determines if an external event has occurred.
+			self.determineTheExternalFactors()						#Each day, external determines if an external event has occurred.
 
 			MessageQueue(102).send('Done'.encode())					#After, it lets the market know that it can start the day.
 
