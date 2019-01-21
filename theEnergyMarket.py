@@ -23,16 +23,24 @@ class Home(Process):
 
 	def __init__(self, consumptionRate, productionRate, isGenerous):
 
-		super().__init__()
+		super().__init__()											#Home is a subclass of Process so we need to call Process' costructor.
+
 		Home.numberOfHomes+=1										#Each time a new homes is instantiated, it's incremented.
+
 		self.budget=1000000											#All homes start with this initial budget. A zero can be removed to finish the simulation 
-																	#quicker (in case all the homes consume more than they produce)
+																	#quicker (in case all the homes consume more than they produce).
 		self.consumptionRate=consumptionRate
+		
 		self.productionRate=productionRate
+
 		self.day=1													#Each home records its current day so that in the terminal we see that they're all on the same day.
+
 		self.energy=0												#All homes start with 0 energy.
+
 		self.homeNumber=Home.numberOfHomes 							#Each home has a unique number.
-		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)	#Each home has a unique message queue that is uses to receive messages from the market.
+
+		self.messageQueue=MessageQueue(self.homeNumber,IPC_CREAT)	#Each home has a unique message queue that is uses to receive messages from Market.
+
 		self.isGenerous=isGenerous									#If a home is generous, it'll try to give its energy away for free at first and only sell if it can't. 
 																	#If not generous, it'll directly sell.
 		
@@ -41,29 +49,35 @@ class Home(Process):
 
 		while 1:
 			print("Home {}: It is day {}. My budget is {} dollars.".format(self.homeNumber, self.day, self.budget))
+
 			self.energy=self.productionRate-self.consumptionRate		#Homes calculate their energy for the given day.
+
 			self.decideWhatToDo()										#According to whether they have a surplus or deficit of energy and whether or not they are generous, the homes decide on what to do.
-			if self.budget<0:											#If their budget goes below zero, they are broke and they stop existing. 
+
+			if self.budget<0:											#If their budget goes below zero, they are broke and they stop existing as a process.
 				print("Home {}: Shit I'm broke!".format(self.homeNumber))
 				self.sendMessage('Broke')
 				break
-			self.finishCurrentDay()										#When the current they is over they let the market know.
-			self.waitForNextDay()										#They wait for the market to tell them when the next day arrives.
+			self.finishCurrentDay()										#When the current they is over they let Market know.
+
+			self.waitForNextDay()										#They wait for Market to tell them when the next day arrives.
+
 			self.day+=1
 
 
 
-	def finishCurrentDay(self):
+	def finishCurrentDay(self):	#The home notifies Market that his day is done.
 
 		self.sendMessage('Done')
 
 			
-	def waitForNextDay(self):
+	def waitForNextDay(self):	#The home just waits until it receives a message from Market.
 
-		message=self.receiveMessage()
+		message=self.receiveMessage()			
 
 
-	def decideWhatToDo(self):
+	def decideWhatToDo(self):	#The determines what it needs to do. If it needs energy, it'll first try to get it for free. If he can't get enough, it'll buy the remainder.
+								#If it has too much energy, if the home is not generous, it'll sell it. If it is generous, first it'll try to give away all of it and only sell what it can't give away.
 		
 		if self.energy<0:
 			self.getEnergy()
@@ -72,11 +86,13 @@ class Home(Process):
 		elif self.energy>0:
 			if self.isGenerous:
 				self.giveEnergy()
+				if self.energy>0:
+					self.sellEnergy()
 			else:
 				self.sellEnergy()
 
 
-	def sendMessage(self, message):
+	def sendMessage(self, message):			#Each time a home sends a message, it includes its home number, the amount of energy (sell or buy), its current budget, and what it wants to do.
 
 		amount=abs(self.energy)
 		message= str(self.homeNumber) + ' ' + str(amount) + ' ' + str(self.budget) + ' ' + message
@@ -85,12 +101,13 @@ class Home(Process):
 
 	def receiveMessage(self):
 
-		x, t = self.messageQueue.receive()
+		x, t = self.messageQueue.receive()	#Since receive() is blocking, the home waits here until Market sends it a message.
 		message = x.decode()
 		return message
 
 
-	def buyEnergy(self):
+	def buyEnergy(self):	#If the home decides to buy energy, it sends a message to Market and then waits for Market to tell it the 
+							#current price. Then it updates it budget according to the amounf of energy it bought, which equals its energy deficit.			
 
 		print("Home {}: What's the price? I wanna buy some energy.".format(self.homeNumber))
 		self.sendMessage('Buy')
@@ -99,7 +116,8 @@ class Home(Process):
 		self.budget+=self.energy*price
 
 
-	def sellEnergy(self):
+	def sellEnergy(self):	#If the home decides to sell energy, it sends a message to Market and then waits for Market to tell it the 
+							#current price. Then it updates it budget according to the amounf of energy it sold, which equals its energy surplus.
 
 		print("Home {}: What's the price? I wanna sell some energy.".format(self.homeNumber))
 		self.sendMessage('Sell')
@@ -108,7 +126,9 @@ class Home(Process):
 		self.budget+=self.energy*price
 
 
-	def getEnergy(self):
+	def getEnergy(self):	#If the home decides to get free energy, it sends a message to Market and then waits for Market to tell it the 
+							#amount of free energy it was allowed to obtain. There are 3 cases. First, it received no energy, in which case it will have to buy all the energy it needs.
+							#Second, it received some but not enough energy, in which case it will have to buy the remainder. Third, it received all the energy it needed, in which case the homes is happy.
 
 		print("Home {}: I wanna get some free energy.".format(self.homeNumber))
 		self.sendMessage('Get')
@@ -125,7 +145,9 @@ class Home(Process):
 			print("Home {}: Oh, it's not enough. I still have to buy some energy.".format(self.homeNumber))
 
 
-	def giveEnergy(self):
+	def giveEnergy(self):	#If the home decides to give away free energy, it sends a message to Market and then waits for Market to tell it the 
+							#amount of free energy it was allowed to give away. There are two cases. First, it was allowed to give away some energy. In this case the home will sell the remaining
+							#surplus of energy, if any. Second, it couldn't give away any energy at all and will need to sell all of it.
 
 		print("Home {}: I'm giving away some free energy.".format(self.homeNumber))
 		self.sendMessage('Give')
@@ -134,7 +156,6 @@ class Home(Process):
 			print("Home {}: Cool! I gave away {} free energy.".format(self.homeNumber, amount))
 		elif amount==0:
 			print("Home {}: Oh, no one wants my free energy. I'll have to sell it.".format(self.homeNumber))
-			self.sellEnergy()
 
 
 
@@ -143,40 +164,67 @@ class Market(Process):
 
 	def __init__(self, numberOfHomes=5):
 
-		super().__init__()
+		super().__init__()								#Market is a subclass of Process so we need to call Process' costructor.
+
 		self.numberOfHomes=numberOfHomes 				#The market needs to know the number of homes.
+
 		self.initialNumberOfHomes=numberOfHomes 		#This was needed when I was doing the visualization because the one just above changes if some homes go broke.
+
 		self.price=20000								#The price of energy.
+
 		self.priceLock = Lock()							#Since market is multi-threaded, the variable just above needs to be kept safe from the race conditions.
+
 		self.numberOfHomeThatAreDone=0					#The market increments it when it receives the 'Done' message from a home.
+
 		self.numberOfHomeThatAreDoneLock=Lock()			#Same as the previous lock.
+
 		self.aliveHomes=[True]*numberOfHomes 			#This list is modified each time a home goes broke. It is then used to determine for which homes the market should wait.
-		self.dayHasStarted=False						#The days actually don't start until Weather and External are done. Only then this becomes true.
-		self.gamma=.9999  								#The long-term attenuation coefficient for
-		self.f=0										#The internal factor (number of homes buying-selling)
+
+		self.dayHasStarted=False						#The days actually don't start until Weather and External are done. Only then this becomes true. 
+														#When it's false, Market doesn't even handle the messages it receives from homes and waits for it to be true.
+
+		self.gamma=.9999  								#The long-term attenuation coefficient for the price.
+
+		self.f=0										#The internal factor (number of homes buying-selling).
+
 		self.fLock=Lock()								#Some as other locks.
-		self.alpha=3									#The modulating coefficient for factor for internal factors
+
+		self.alpha=3									#The modulating coefficient for factor for internal factors.
+
 		self.freeEnergy=0								#This is the energy that the generous homes with energy surplusses give away.
+
 		self.freeEnergyLimit=10							#This is the limit on the latter. If it is attained, energy cannot ve given away and even the generous homes will have to sell their energy surplus.
+
 		self.day=1										#Market records its current day so that in the terminal we see that it is the same as other processes.
+
 		self.messageQueue=MessageQueue(100,IPC_CREAT)	#This is the message queue of the market. All homes send their messages here.
+
 		self.dayArray=np.array([self.day])				#A numpy array for storing all the days staring from 1. Used to produce graphs at the end of the simulation.
+
 		self.priceArray=np.array([self.price])			#Same but for the energy price. The market records it each day and puts its value here.
+
 		self.temperatureArray=np.array([])				#Same but for the temperature.
+
 		self.sunnyArray=np.array([])					#Same, if a day is sunny then market appends 'sunny' to it, if cloudy then 'cloudy'.
+
 		self.macronDays=[]								#Days when Macron increased the tax on energy. It is used to generate a text at the bottom of the graph.
+
 		self.fusionDays=[]								#Days when there was a fusion breakthrough. It is used to generate a text at the bottom of the graph.
+
 		self.budgetsOfHomes=[]							#List of budgets of the homes in each day. Later will be converted to numpy arrays and then used to produce a single graph with all the budgets of all the homes.
+
 		for i in range(self.numberOfHomes):
 			self.budgetsOfHomes.append([1000000])		#The method of recording of the budgets of the homes isn't perfect so to compensate the initial value is manually appended.
+
 		MessageQueue(101,IPC_CREAT) 					#Not used for IPC but only for synchronization with Weather.
+
 		MessageQueue(102,IPC_CREAT) 					#Not used for IPC but only for synchronization with External.
 
 
 
 	def run(self):
 
-		signal(SIGUSR1, self.handleSignals)				#We define custom handlers to be executed when a signal is received.
+		signal(SIGUSR1, self.handleSignals)				#We define custom handlers to be executed when a SIGUSR1 and SIGUSR2 signals are received.
 		signal(SIGUSR2, self.handleSignals)
 
 		external=External()								#External is a child-process of Market.
@@ -187,6 +235,7 @@ class Market(Process):
 
 
 		#Two choices for the visualization. Make sure not to choose the second one if even a single home produces more energy then they consume.
+		#If matplotlib and numpy are not installed, choose neither and you can still see the stuff happening on the terminal.
 		self.waitForGivenSecondsThenShowGraphs(100)	
 		# self.showGraphsWhenAllHomesAreBroke()
 
@@ -196,16 +245,16 @@ class Market(Process):
 
 
 
-	def showGraphsWhenAllHomesAreBroke(self):
+	def showGraphsWhenAllHomesAreBroke(self):		#Use it only when all homes have energy deficits.
 
 		while self.numberOfHomes!=100:				#When all homes are bankrupt self.numberOfHomes is set to 100 so that everything stops. So this makes the function wait until all the homes go bankrupt.
-			sleep(5)								#Without this the program becomes very slaw since it checks the above condition as much as it can it the main thread.
+			sleep(5)								#Without this the program becomes very slow since it checks the above condition as much as it can it the main thread.
 			pass
 		self.showGraphs()
 
 
 
-	def waitForGivenSecondsThenShowGraphs(self, seconds):
+	def waitForGivenSecondsThenShowGraphs(self, seconds):	#The best function is this one. Waiting 100 seconds is quite sufficient and on my computer is able to simulate more than 200 days (with 5 homes).
 
 		fiveSecondCounter=0
 		isOver=False
@@ -220,58 +269,59 @@ class Market(Process):
 
 
 
-	def manageTheDay(self):
+	def manageTheDay(self):	#Eveything that happens in a given day except the IPC with homes.
 
 		while 1:
 			self.startTheDay()
 			self.goToNextDay()
 
 
-	def startTheDay(self):
+	def startTheDay(self):	#Each day Market waits for Weather and External to determine the conditions and only then it starts the day.
 
 		for i in range(self.initialNumberOfHomes):
-			self.budgetsOfHomes[i].append(0)
+			self.budgetsOfHomes[i].append(0)	#At the start of each day 0 is appended to each sublist of budgetsOfHomes. This way if a given home is bankrupt its budget is correctly inputed.
 
 		self.waitForWeather()
 		self.waitForExternal()
-		self.dayHasStarted=True
+		self.dayHasStarted=True 	
 
 
-	def waitForWeather(self):
+	def waitForWeather(self):	#Simply waits for Weather to finish the day.
 
 		MessageQueue(101).receive()
 
-		self.temperatureArray=np.append(self.temperatureArray,temperature.value)
+		self.temperatureArray=np.append(self.temperatureArray,temperature.value)	#Records the current day's temperature.
 
-		if sunny.value==1:
+		if sunny.value==1:															#Records the current day's weather.
 			self.sunnyArray=np.append(self.sunnyArray,'sunny')
 		else:
 			self.sunnyArray=np.append(self.sunnyArray,'cloudy')
 
 
-	def waitForExternal(self):
+	def waitForExternal(self):	#Simply waits for External to finish the day.
 
 		MessageQueue(102).receive()
 
 
-	def updatePrice(self):
+	def updatePrice(self):		#Updates the price at the end of the day according to number of homes buying vs selling, temperature, and weather.
 
 		with self.priceLock:
-			self.price=int((self.gamma*self.price+self.alpha*self.f)*((20/temperature.value)**(1./10))*((sunny.value)**(1./1000)))	#SUNNY? DAMN NEGATIVE NALJSKLA
-			self.priceArray=np.append(self.priceArray,self.price)
+			self.price=int((self.gamma*self.price+self.alpha*self.f)*((20/temperature.value)**(1./10))*((sunny.value)**(1./1000)))
+			self.priceArray=np.append(self.priceArray,self.price)	#Records the current day's energy price.
 			with self.fLock:
 				self.f=0
-			if self.price<100:
+			if self.price<100:	#This is only true if we have modified the parameters too much. Normally price never decreases this much. This is in case it does so we at least set it back to 100.
 				self.price=100
 			print("Market: Updated the price. It is now {}.".format(self.price))
 
 
-	def showGraphs(self):
+	def showGraphs(self):	#Uses matplotlib.plotly to produce two graphs. One has the energy prices for all days as well as temperature, weather, and external events. 
+							#The other has all the homes' budgets.
 
-		for i in range(self.initialNumberOfHomes):
+		for i in range(self.initialNumberOfHomes):	#The homes send one last message even when Market stops so we delete that in order to make arrays for day and budgets the same size.
 			del self.budgetsOfHomes[i][-1]
 
-		for i in range(self.initialNumberOfHomes):
+		for i in range(self.initialNumberOfHomes):	#Plots the budget for each home.
 			budgetArray=np.asarray(self.budgetsOfHomes[i])
 			plt.plot(self.dayArray, budgetArray,label='Home {}'.format(i+1))
 		plt.xlabel('Days')
@@ -281,7 +331,7 @@ class Market(Process):
 
 
 
-		fig, ax1 = plt.subplots()
+		fig, ax1 = plt.subplots()	#For the second graph, teh scales for prize and temperature are vastly different so we need to use different scales for the y-axes.
 
 		color = 'tab:blue'
 		ax1.set_xlabel('Day')
@@ -312,11 +362,12 @@ class Market(Process):
 		for elem in self.fusionDays:
 			text+=str(elem)+' '
 
-		plt.gcf().text(.02, .02, text, fontsize=10)
-		plt.show()
+		plt.gcf().text(.02, .02, text, fontsize=10)	#Puts the days when events occurred on the graph.
+		plt.show()		#Shows the graphs.
 
 
-	def handleSignals(self, sig, frame):
+	def handleSignals(self, sig, frame):	#Handles signals coming from External which indicate external events occurring. The first one means Macron increased the energy tax so 
+											#the energy prices goes up 10% (can be changed below). The second one means some nuclear fusion breakthrough so the energy price naturally decreases a lot.
 
 		oldPrice=self.price
 
@@ -324,16 +375,16 @@ class Market(Process):
 			with self.priceLock:
 				self.price=int(self.price*1.10)
 				print("Market: Macron has increased the tax on energy! The energy price increased from {} to {}.".format(oldPrice,self.price))
-				self.macronDays.append(self.day)
+				self.macronDays.append(self.day)	#Records the days when there was a tax increase.
 
 		elif sig == SIGUSR2:
 			with self.priceLock:
 				self.price=int(self.price/1.5)
 				print("Market: INSA students made a breakthrough on nuclear fusion! The energy price decreased from {} to {}.".format(oldPrice,self.price))
-				self.fusionDays.append(self.day)
+				self.fusionDays.append(self.day)	#Records the days when there was a fusion breakthrough.
 
 
-	def goToNextDay(self):
+	def goToNextDay(self):	#Waits until all the homes are done for the day. After, it updates the price and lets Weather and External know that they can start the next day.
 
 		while self.numberOfHomeThatAreDone!=self.numberOfHomes:
 			pass
@@ -352,7 +403,7 @@ class Market(Process):
 		MessageQueue(300).send('Go'.encode())
 
 
-	def waitForMessages(self):
+	def waitForMessages(self):	#Waits for messages from homes and when they arrive assigns a worker thread to handle it.
 
 		with ThreadPoolExecutor(max_workers=4) as executor:
 			while 1:
@@ -360,7 +411,7 @@ class Market(Process):
 				executor.submit(self.handleMessage, message)
 
 
-	def handleMessage(self, message):
+	def handleMessage(self, message):	#Waits until the day has started and then handles the messages coming from homes. It also records the budgets of each home for the day.
 
 		while not self.dayHasStarted:
 			pass 
@@ -382,10 +433,10 @@ class Market(Process):
 			print('Market: Oh no! Home{} went broke.'.format(homeNumber))
 			self.aliveHomes[homeNumber-1]=False
 			print(self.aliveHomes)
-			self.numberOfHomes-=1 #lock
+			self.numberOfHomes-=1 #lock is actually needed, but come on...
 			print('Market: Henceforth there are {} homes.'.format(self.numberOfHomes))
 
-			if self.numberOfHomes==0:
+			if self.numberOfHomes==0:	#This means the simulation must stop.
 				self.numberOfHomes=100 #i would love to find out a way to make the program stop at this point
 
 		elif message=='Buy':
@@ -431,12 +482,12 @@ class Market(Process):
 				print('Market: Home{} is done. {} homes remain.'.format(homeNumber, self.numberOfHomes-self.numberOfHomeThatAreDone))
 
 			
-	def sendMessage(self, homeNumber, message):
+	def sendMessage(self, homeNumber, message):	#Sends a message to a given home.
 
 		MessageQueue(homeNumber).send(str(message).encode())
 
 
-	def receiveMessage(self):
+	def receiveMessage(self):	#Receives messages from homes.
 
 		x, t = self.messageQueue.receive()
 		message = x.decode()
@@ -448,8 +499,10 @@ class External(Process):
 
 	def __init__(self):
 
-		super().__init__()
+		super().__init__()			#External is a subclass of Process so we need to call Process' costructor.
+
 		MessageQueue(300,IPC_CREAT)	#Not used for IPC but only for synchronization with Market.
+
 		self.day=1					#External records its current day so that in the terminal we see that it is the same as other processes.
 
 
@@ -459,8 +512,11 @@ class External(Process):
 		while 1:
 			print('External: It is day {}.'.format(self.day))
 			self.determineTheExternalFactors()						#Each day, external determines if an external event has occurred.
+
 			MessageQueue(102).send('Done'.encode())					#After, it lets the market know that it can start the day.
+
 			MessageQueue(300).receive()								#Then it waits for market to tell him that he can start the next day.
+
 			self.day+=1
 
 
@@ -480,9 +536,12 @@ class Weather(Process):
 
 	def __init__(self):
 
-		super().__init__()
+		super().__init__()						#Weather is a subclass of Process so we need to call Process' costructor.
+
 		MessageQueue(200,IPC_CREAT)				#Not used for IPC but only for synchronization with Market.
+
 		self.day=1								#Weather records its current day so that in the terminal we see that it is the same as other processes.
+
 		self.numberOfConsecutiveCloudyDays=0	#As the number of consecutive cloudy days increase the chance for a sunny day also increases.
 		
 
@@ -491,15 +550,18 @@ class Weather(Process):
 		while 1:
 			print('Weather: It is day {}.'.format(self.day))
 			self.determineWeatherConditions()						#Each day, Weather determines the temperature and whether or not it's sunny.
+
 			MessageQueue(101).send('Done'.encode())					#After, it lets the market know that it can start the day.
+
 			MessageQueue(200).receive()								#Then it waits for market to tell him that he can start the next day.
+
 			self.day+=1
 
 
 	def determineWeatherConditions(self):
 
 		
-		if sunny.value==1:
+		if sunny.value==1:	#If yesterday was sunny.
 			if randint(1,100)<=70:	#If yesterday was sunny, there's a 70% chance today is as well.
 				sunny.value=1
 				print("Weather: Today it's sunny :D!")
@@ -507,7 +569,7 @@ class Weather(Process):
 				sunny.value=10
 				print("Weather: Today it's cloudy :(.")
 				self.numberOfConsecutiveCloudyDays+=1
-		else:
+		else:	#If yesterday was cloudy.
 			if randint(1,100)<=98-2*self.numberOfConsecutiveCloudyDays: 	#If yesterday the beginning of the cloudy days, there's a 98% chance today is cloudy as well. With each consecutive clody day
 																			#the chance for the next day to be cloudy decreases by 2%.
 				sunny.value=10
@@ -526,7 +588,11 @@ class Weather(Process):
 if __name__=="__main__":
 
 
-	#
+	#INTRODUCTION
+	#This is a simulation of an energy market using concurrent execution features of Python. There are 4 kinds of processes: Market, Home, Weather, External.
+	#......
+	#......
+
 
 
 	# Two shared states that are handled by the weather process. Even though in general shared states need synchronization, multiprocessing.Value is automatically 
@@ -537,7 +603,8 @@ if __name__=="__main__":
 
 	# We instantiate all the processes we want in the simulation:
 	weather=Weather()						# No arguments.
-	market=Market(10)							# Market takes the number of homes as an argument. However, by default there are 5 homes so if that is the number of homes desired, it can be left out.
+
+	market=Market()							# Market takes the number of homes as an argument. However, by default there are 5 homes so if that is the number of homes desired, it can be left out.
 											# If more or less homes is desired put it as an argument, e.g., for a single home write Market(1)
 
 	home1=Home(10, 5, True)					# Homes take the arguments consumptionRate, productionRate, and isGenerous.
@@ -545,11 +612,11 @@ if __name__=="__main__":
 	home3=Home(10, 12, False)
 	home4=Home(9, 2, True)
 	home5=Home(2, 0, True)
-	home6=Home(15, 20, True)
-	home7=Home(10, 20, False)
-	home8=Home(20, 0, False)
-	home9=Home(2, 2, True)
-	home10=Home(5, 3, True)
+	# home6=Home(15, 20, True)
+	# home7=Home(10, 20, False)
+	# home8=Home(20, 0, False)
+	# home9=Home(2, 2, True)
+	# home10=Home(5, 3, True)
 
 
 	# We start the processes that we have instantiated above.
@@ -560,8 +627,8 @@ if __name__=="__main__":
 	home3.start()
 	home4.start()
 	home5.start()
-	home6.start()
-	home7.start()
-	home8.start()
-	home9.start()
-	home10.start()
+	# home6.start()
+	# home7.start()
+	# home8.start()
+	# home9.start()
+	# home10.start()
