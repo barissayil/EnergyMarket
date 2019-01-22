@@ -14,4 +14,4 @@ There are some nice figures in the aptly named folder.
 
 ##  Instructions
 
-After making sure you have all the packages you can directly run theEnergyMarket.py on the terminal. Other then seeing the inputs on the terminal, you also have the option to output figures, created using plotly. To do so, go to the run() function of Market and choose one of the options.
+After making sure you have all the packages you can directly run theEnergyMarket.py on the terminal. Other then seeing the inputs on the terminal, you also have the option to output some quite cool figures using one of the two functions. To do so, go to the run() function of Market and choose the relevant function.
