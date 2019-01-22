@@ -1,5 +1,5 @@
 # Energy Market
-A simulation of an energy market using concurrent execution features of Python. This is a project for the Parallel and Concurrent Programming course for the Telecommunications Engineering department of INSA Lyon. It is made by Baris Sayil and Alexandros Sidiras.
+A simulation of an energy market using concurrent execution features of Python. This is a project for the Parallel and Concurrent Programming course for the Telecommunications Engineering department of INSA Lyon by Baris Sayil and Alexandros Sidiras.
 
 https://github.com/BarisSayil/EnergyMarket
 
